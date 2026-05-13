@@ -30,7 +30,9 @@
       },
       tags: 'ams',
       tagSide: 'right',
-      tagIndent: '.8em'
+      tagIndent: '.8em',
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
     },
     chtml: {
       scale: 1.0,
@@ -72,7 +74,7 @@
 <div id="main" class="container">
 
 <p>
-<div class="row"><h2 class="col-md-12 text-center"><strong><font size="+4r">  Inverting the Bellman Equation:<br />From <i>Q</i>-Values to World Models  </font></strong></h2></div><br />
+<div class="row"><h2 class="col-md-12 text-center"><strong><font size="+4r">  Inverting the Bellman Equation:<br />From $Q$-Values to World Models  </font></strong></h2></div><br />
 </p>
 
 
@@ -111,11 +113,13 @@
 
 <blockquote style="margin-top:0;">
 <p>
-<b>TLDR:</b> Goal-conditioned value-based agents, trained on a sufficiently rich set of rewards, implicitly encode a <i>unique</i>, accurate world model &mdash; we prove this and extract the model with <b><i>P</i>-learning</b>, the <i>inverse of Q-learning</i>: where <i>Q</i>-learning fixes the environment to find consistent values, <i>P</i>-learning fixes the values to find the consistent environment, effectively <b>inverting the Bellman equation</b>. The recovered model supports zero-shot planning on goals far outside the training distribution &mdash; even over state variables the agent never directly optimised for &mdash; revealing an <i>implicit generalisation</i> capability hidden inside ordinary model-free agents, and bridging model-based, model-free, and goal-conditioned RL.<br />
+<b>TLDR:</b> Goal-conditioned value-based agents, trained on a sufficiently rich set of rewards, implicitly encode a <i>unique</i>, accurate world model &mdash; we prove this and extract the model with <b>$P$-learning</b>, the <i>inverse of $Q$-learning</i>: where $Q$-learning fixes the environment to find consistent values, $P$-learning fixes the values to find the consistent environment, effectively <b>inverting the Bellman equation</b>. The recovered model supports zero-shot planning on goals far outside the training distribution &mdash; even over state variables the agent never directly optimised for &mdash; revealing an <i>implicit generalisation</i> capability hidden inside ordinary model-free agents, and bridging model-based, model-free, and goal-conditioned RL.<br />
 
-We prove that model-free agents trained on diverse reward functions implicitly encode a unique world model, introduce P-learning to extract this in practice, and empirically demonstrate this in stochastic gridworlds, MountainCar, and Reacher.  <br/>
+We prove that model-free agents trained on diverse reward functions implicitly encode a unique world model, introduce $P$-learning to extract this in practice, and empirically demonstrate this in stochastic gridworlds, MountainCar, and Reacher.  <br/>
 
-We prove that goal-conditioned agents trained on a sufficiently rich set of rewards implicitly encode a unique, accurate world model — and introduce P-learning, an algorithm that extracts it from their Q-values by inverting the Bellman equation. The extracted world model unlocks zero-shot planning for goals far beyond the training distribution, even on variables the agent never directly optimised for.
+We prove that goal-conditioned agents trained on a sufficiently rich set of rewards implicitly encode a unique, accurate world model — and introduce $P$-learning, an algorithm that extracts it from their $Q$-values by inverting the Bellman equation. The extracted world model unlocks zero-shot planning for goals far beyond the training distribution, even on variables the agent never directly optimised for.
+
+Model-free agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. We introduce $P$-learning to extract this in practice, and empirically demonstrate this in stochastic gridworlds, MountainCar, and Reacher.
 </p>
 </blockquote>
 
@@ -129,7 +133,7 @@ We prove that goal-conditioned agents trained on a sufficiently rich set of rewa
 <h3 id="abstract">Abstract</h3>
 <div class="outline-text-3" id="text-abstract">
 <p>
-Model-based and model-free reinforcement learning are traditionally viewed as separate paradigms: while the former learns an explicit model of the transition dynamics \(P\), model-free agents typically estimate value functions tied to a specific policy and reward. In this paper, we challenge this dichotomy by proving that value-based agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. To extract this model in practice, we introduce <i>P</i>-learning; analogous to <i>Q</i>-learning, which approximates \(Q^\star\) using samples from the environment, <i>P</i>-learning extracts an agent's model of the environment \(P^\star\) by sampling from its <i>Q</i>-values, policies, and rewards, effectively inverting the Bellman equation. In deterministic MDPs, we prove that the true kernel \(P\) can be recovered from an agent trained on a single generic goal for finite state spaces \(\mathcal{S}\), and a finite number of Gaussian goals for continuous \(\mathcal{S} \subseteq \mathbb{R}^d\), provided <i>Q</i>-values are accurate. In the stochastic setting, these conditions generalise to larger sets of goals depending on the reward function family. Even when our assumptions are violated, we empirically demonstrate that agents trained with a small number of sparse rewards encode accurate dynamics in (i) stochastic variants of <code>FourRooms</code>, (ii) <code>MountainCar</code>, and (iii) <code>Reacher</code>. This is further validated by training policies inside the extracted world model, for goals far beyond the training distribution, suggesting that goal-conditioned agents secretly contain implicit generalisation capabilities and providing a new lens into the connection between model-based, model-free, and goal-conditioned RL.<br />
+Model-based and model-free reinforcement learning are traditionally viewed as separate paradigms: while the former learns an explicit model of the transition dynamics $P$, model-free agents typically estimate value functions tied to a specific policy and reward. In this paper, we challenge this dichotomy by proving that value-based agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. To extract this model in practice, we introduce $P$-learning; analogous to $Q$-learning, which approximates $Q^\star$ using samples from the environment, $P$-learning extracts an agent's model of the environment $P^\star$ by sampling from its $Q$-values, policies, and rewards, effectively inverting the Bellman equation. In deterministic MDPs, we prove that the true kernel $P$ can be recovered from an agent trained on a single generic goal for finite state spaces $\mathcal{S}$, and a finite number of Gaussian goals for continuous $\mathcal{S} \subseteq \mathbb{R}^d$, provided $Q$-values are accurate. In the stochastic setting, these conditions generalise to larger sets of goals depending on the reward function family. Even when our assumptions are violated, we empirically demonstrate that agents trained with a small number of sparse rewards encode accurate dynamics in (i) stochastic variants of <code>FourRooms</code>, (ii) <code>MountainCar</code>, and (iii) <code>Reacher</code>. This is further validated by training policies inside the extracted world model, for goals far beyond the training distribution, suggesting that goal-conditioned agents secretly contain implicit generalisation capabilities and providing a new lens into the connection between model-based, model-free, and goal-conditioned RL.<br />
 </p>
 </div>
 </div>
@@ -153,8 +157,8 @@ Our answer: <b>agents trained on a sufficiently rich set of goals</b> &mdash; e.
 
 <div class="step2bullets">
 <ul class="org-ul">
-<li><b>Methodologically</b>, we introduce <b><i>P</i>-learning</b>, an inverse analogue to <i>Q</i>-learning. Instead of iteratively updating value estimates for a fixed environment, <i>P</i>-learning updates a candidate world model to be consistent with fixed value functions, converging to a world model that explains the <i>Q</i>-values.<br /></li>
-<li><b>Theoretically</b>, we prove conditions under which value equivalence is broken and <i>P</i>-learning recovers the true transition kernel exactly. In deterministic MDPs, a <b>single</b> generic goal suffices for finite \(\mathcal{S}\), and a finite number of Gaussian goals for continuous \(\mathcal{S}\subseteq \mathbb{R}^d\). In stochastic MDPs, \(|\mathcal{G}|\geq |\mathcal{S}|\) goals (finite) or any goal set with non-empty interior (continuous) suffice, with tight \(\Theta(\varepsilon)\) error bounds for \(\varepsilon\)-approximate <i>Q</i>-values.<br /></li>
+<li><b>Methodologically</b>, we introduce <b>$P$-learning</b>, an inverse analogue to $Q$-learning. Instead of iteratively updating value estimates for a fixed environment, $P$-learning updates a candidate world model to be consistent with fixed value functions, converging to a world model that explains the $Q$-values.<br /></li>
+<li><b>Theoretically</b>, we prove conditions under which value equivalence is broken and $P$-learning recovers the true transition kernel exactly. In deterministic MDPs, a <b>single</b> generic goal suffices for finite $\mathcal{S}$, and a finite number of Gaussian goals for continuous $\mathcal{S}\subseteq \mathbb{R}^d$. In stochastic MDPs, $|\mathcal{G}|\geq |\mathcal{S}|$ goals (finite) or any goal set with non-empty interior (continuous) suffice, with tight $\Theta(\varepsilon)$ error bounds for $\varepsilon$-approximate $Q$-values.<br /></li>
 <li><b>Empirically</b>, we recover accurate world models from agents trained with surprisingly few goals on stochastic variants of <code>FourRooms</code>, <code>MountainCar</code>, and MuJoCo <code>Reacher</code>. The extracted model supports <b>zero-shot planning</b> for goals far outside the training distribution, even on variables the reward never directly depended on &mdash; providing a new lens on the link between model-based, model-free, and goal-conditioned RL.<br /></li>
 </ul>
 </div>
@@ -163,38 +167,38 @@ Our answer: <b>agents trained on a sufficiently rich set of goals</b> &mdash; e.
 
 
 <div id="outline-container-method" class="outline-3">
-<h3 id="method">What is <i>P</i>-Learning?</h3>
+<h3 id="method">What is $P$-Learning?</h3>
 <div class="outline-text-3" id="text-method">
 <p>
-The starting point is a simple symmetry. The Bellman equation for a goal-conditioned policy \(\pi\) reads<br />
+The starting point is a simple symmetry. The Bellman equation for a goal-conditioned policy $\pi$ reads<br />
 </p>
 
 <p>
-\[ \mathcal{T}^\pi_{P}(Q)(s, a, g) = \mathbb{E}_{s' \sim P(s,a),\,a'\sim\pi(s',g)}\bigl[\,r(s', g) + \gamma\, Q(s', a', g)\,\bigr] \,. \]<br />
+$$ \mathcal{T}^\pi_{P}(Q)(s, a, g) = \mathbb{E}_{s' \sim P(s,a),\,a'\sim\pi(s',g)}\bigl[\,r(s', g) + \gamma\, Q(s', a', g)\,\bigr] \,. $$<br />
 </p>
 
 <p>
-<b><i>Q</i>-learning</b> takes the environment \(P\) as <i>fixed</i> and searches for a value function \(Q\) that satisfies \(\mathcal{T}^\pi_P(Q) = Q\). <b><i>P</i>-learning</b> flips this: it takes a goal-conditioned <i>Q</i>-function (and policy and reward) as <i>fixed</i>, and searches for a transition kernel \(P_\phi\) that satisfies the same equation. We minimise the Bellman residual with respect to \(\phi\):<br />
+<b>$Q$-learning</b> takes the environment $P$ as <i>fixed</i> and searches for a value function $Q$ that satisfies $\mathcal{T}^\pi_P(Q) = Q$. <b>$P$-learning</b> flips this: it takes a goal-conditioned $Q$-function (and policy and reward) as <i>fixed</i>, and searches for a transition kernel $P_\phi$ that satisfies the same equation. We minimise the Bellman residual with respect to $\phi$:<br />
 </p>
 
 <p>
-\[ \mathcal{L}(\phi) \;=\; \bigl\| \mathcal{T}^\pi_\phi(Q) - Q \bigr\|_d^2 \,. \]<br />
+$$ \mathcal{L}(\phi) \;=\; \bigl\| \mathcal{T}^\pi_\phi(Q) - Q \bigr\|_d^2 \,. $$<br />
 </p>
 
 <p>
-Unlike <i>Q</i>-learning, <i>P</i>-learning is gradient descent on a <i>stationary</i> objective, so it inherits the standard convergence guarantees of SGD. In the tabular case, we can write the update in closed form. Stacking next-state values \(M_{lk} = r(s'_k, g_l) + \gamma V(s'_k, g_l)\) into a matrix \(M\), the Bellman equation becomes a linear system \(M\,P_\phi(s,a) = Q(s,a)\), and <i>P</i>-learning converges to<br />
+Unlike $Q$-learning, $P$-learning is gradient descent on a <i>stationary</i> objective, so it inherits the standard convergence guarantees of SGD. In the tabular case, we can write the update in closed form. Stacking next-state values $M_{lk} = r(s'_k, g_l) + \gamma V(s'_k, g_l)$ into a matrix $M$, the Bellman equation becomes a linear system $M\,P_\phi(s,a) = Q(s,a)$, and $P$-learning converges to<br />
 </p>
 
 <p>
-\[ P_\infty(s,a) \;=\; M^{+}\, Q(s,a) \;+\; \bigl(I - M^{+}M\bigr)\, P_0(s,a)\,, \]<br />
+$$ P_\infty(s,a) \;=\; M^{+}\, Q(s,a) \;+\; \bigl(I - M^{+}M\bigr)\, P_0(s,a)\,, $$<br />
 </p>
 
 <p>
-where \(M^{+}\) is the Moore&ndash;Penrose pseudo-inverse. When \(M\) has full rank, the second term vanishes and \(M^{+}\) acts as an <b>inverse Bellman map</b> from values back to dynamics &mdash; the analogue, for <i>P</i>-iteration, of the contraction underlying classical <i>Q</i>-iteration. If the <i>Q</i>-values are exact for the true kernel, <i>P</i>-learning recovers <b>exactly</b> that kernel.<br />
+where $M^{+}$ is the Moore&ndash;Penrose pseudo-inverse. When $M$ has full rank, the second term vanishes and $M^{+}$ acts as an <b>inverse Bellman map</b> from values back to dynamics &mdash; the analogue, for $P$-iteration, of the contraction underlying classical $Q$-iteration. If the $Q$-values are exact for the true kernel, $P$-learning recovers <b>exactly</b> that kernel.<br />
 </p>
 
 <p>
-For continuous state spaces, we parameterise \(P_\phi\) as a neural network and train it by gradient descent on \(\mathcal{L}(\phi)\), using the reparameterisation trick for stochastic dynamics or a deterministic successor function in the deterministic case. The full algorithm is in the paper.<br />
+For continuous state spaces, we parameterise $P_\phi$ as a neural network and train it by gradient descent on $\mathcal{L}(\phi)$, using the reparameterisation trick for stochastic dynamics or a deterministic successor function in the deterministic case. The full algorithm is in the paper.<br />
 </p>
 </div>
 </div>
@@ -204,20 +208,20 @@ For continuous state spaces, we parameterise \(P_\phi\) as a neural network and 
 <h3 id="theory">Theory: When are values informationally equivalent to dynamics?</h3>
 <div class="outline-text-3" id="text-theory">
 <p>
-The classical obstacle to recovering \(P\) from values is <b>value equivalence</b>: many kernels give the same \(Q^\pi\) for a fixed reward. Our theorems pin down exactly when <i>multiple</i> goals break this degeneracy.<br />
+The classical obstacle to recovering $P$ from values is <b>value equivalence</b>: many kernels give the same $Q^\pi$ for a fixed reward. Our theorems pin down exactly when <i>multiple</i> goals break this degeneracy.<br />
 </p>
 
 <div class="step2bullets">
 <ul class="org-ul">
-<li><b>Deterministic, finite \(\mathcal{S}\):</b> a <i>single</i> generic goal suffices to recover \(P\) exactly &mdash; with <b>no</b> assumptions on policy optimality.<br /></li>
-<li><b>Deterministic, continuous \(\mathcal{S}\subseteq\mathbb{R}^d\):</b> a <i>finite</i> set of Gaussian goals suffices.<br /></li>
-<li><b>Stochastic, finite \(\mathcal{S}\):</b> \(|\mathcal{G}| \geq |\mathcal{S}|\) generic goals suffice for exact recovery, with tight \(\Theta(\varepsilon)\) error bounds when <i>Q</i>-values are \(\varepsilon\)-approximate.<br /></li>
-<li><b>Stochastic, continuous \(\mathcal{S}\subseteq\mathbb{R}^d\):</b> any goal set with non-empty interior suffices (for unconditional policies).<br /></li>
+<li><b>Deterministic, finite $\mathcal{S}$:</b> a <i>single</i> generic goal suffices to recover $P$ exactly &mdash; with <b>no</b> assumptions on policy optimality.<br /></li>
+<li><b>Deterministic, continuous $\mathcal{S}\subseteq\mathbb{R}^d$:</b> a <i>finite</i> set of Gaussian goals suffices.<br /></li>
+<li><b>Stochastic, finite $\mathcal{S}$:</b> $|\mathcal{G}| \geq |\mathcal{S}|$ generic goals suffice for exact recovery, with tight $\Theta(\varepsilon)$ error bounds when $Q$-values are $\varepsilon$-approximate.<br /></li>
+<li><b>Stochastic, continuous $\mathcal{S}\subseteq\mathbb{R}^d$:</b> any goal set with non-empty interior suffices (for unconditional policies).<br /></li>
 </ul>
 </div>
 
 <p>
-Taken together: <b>once the goal set is rich enough, the collection \((Q_g, \pi_g, r_g)_{g\in\mathcal{G}}\) is informationally equivalent to the transition kernel \(P\) itself.</b> Model-free, when extended to a family of rewards, recovers all the structural content of model-based.<br />
+Taken together: <b>once the goal set is rich enough, the collection $(Q_g, \pi_g, r_g)_{g\in\mathcal{G}}$ is informationally equivalent to the transition kernel $P$ itself.</b> Model-free, when extended to a family of rewards, recovers all the structural content of model-based.<br />
 </p>
 </div>
 </div>
@@ -227,7 +231,7 @@ Taken together: <b>once the goal set is rich enough, the collection \((Q_g, \pi_
 <h3 id="reacher">Experiment: <code>Reacher</code> &mdash; planning beyond the training distribution</h3>
 <div class="outline-text-3" id="text-reacher">
 <p>
-We train a goal-conditioned <a href="https://arxiv.org/abs/2407.04811">PQN</a> agent on MuJoCo <code>Reacher</code> with only \(|\mathcal{G}|=4\) sparse, position-based goals at the cardinal directions, and extract its implicit world model with <i>P</i>-learning. Despite imperfect <i>Q</i>-values (MSE \(=4.2\cdot10^{-2}\)), the recovered model matches ground-truth dynamics with high fidelity (MSE \(=1.0\cdot10^{-4}\)).<br />
+We train a goal-conditioned <a href="https://arxiv.org/abs/2407.04811">PQN</a> agent on MuJoCo <code>Reacher</code> with only $|\mathcal{G}|=4$ sparse, position-based goals at the cardinal directions, and extract its implicit world model with $P$-learning. Despite imperfect $Q$-values (MSE $=4.2\cdot10^{-2}$), the recovered model matches ground-truth dynamics with high fidelity (MSE $=1.0\cdot10^{-4}$).<br />
 </p>
 
 <img src="imgs/reacher_dynamics.png" style="width:100%;image-rendering:auto;">
@@ -241,9 +245,9 @@ To test whether the model captures more than what the reward saw, we plan inside
 
 <div class="row"><div class="col-md-8 col-md-offset-2">
 <table border="1" cellspacing="0" cellpadding="6" rules="all" frame="border" style="margin:0 auto; text-align:center;">
-<thead><tr><th>Unseen goal</th><th>Optimal \(R_\gamma^\star\)</th><th>WM-trained \(R_\gamma^{\text{WM}}\)</th></tr></thead>
+<thead><tr><th>Unseen goal</th><th>Optimal $R_\gamma^\star$</th><th>WM-trained $R_\gamma^{\text{WM}}$</th></tr></thead>
 <tbody>
-<tr><td>Far fingertip \((\sqrt{2},\sqrt{2})\)</td><td>0.71 &plusmn; 0.07</td><td>0.70 &plusmn; 0.07</td></tr>
+<tr><td>Far fingertip $(\sqrt{2},\sqrt{2})$</td><td>0.71 &plusmn; 0.07</td><td>0.70 &plusmn; 0.07</td></tr>
 <tr><td>Target joint angle</td><td>0.68 &plusmn; 0.06</td><td>0.67 &plusmn; 0.07</td></tr>
 <tr><td>Target velocity</td><td>0.65 &plusmn; 0.06</td><td>0.65 &plusmn; 0.06</td></tr>
 </tbody>
@@ -252,16 +256,16 @@ To test whether the model captures more than what the reward saw, we plan inside
 <br />
 
 <p>
-Crucially, the angle- and velocity-based goals could <b>not</b> have been solved with position-based successor features &mdash; their optimal <i>Q</i>-functions are not linear combinations of training <i>Q</i>-functions. The agent's value function genuinely encodes the geometry of the environment.<br />
+Crucially, the angle- and velocity-based goals could <b>not</b> have been solved with position-based successor features &mdash; their optimal $Q$-functions are not linear combinations of training $Q$-functions. The agent's value function genuinely encodes the geometry of the environment.<br />
 </p>
 
 <p>
-We also test whether <b>better agents have better implicit world models</b>, by sweeping the <i>Q</i>-network architecture. The Spearman correlation between agent return and WM error is \(\rho = -0.98\) (95% CI \([-0.99, -0.94]\)), and between agent return and WM-policy return on unseen goals is \(\rho = +0.92\) &mdash; suggesting that <b>performance and implicit generalisation are tightly coupled</b>.<br />
+We also test whether <b>better agents have better implicit world models</b>, by sweeping the $Q$-network architecture. The Spearman correlation between agent return and WM error is $\rho = -0.98$ (95% CI $[-0.99, -0.94]$), and between agent return and WM-policy return on unseen goals is $\rho = +0.92$ &mdash; suggesting that <b>performance and implicit generalisation are tightly coupled</b>.<br />
 </p>
 
 <img src="imgs/reacher_correlation.png" style="width:100%;image-rendering:auto;">
 <p style="text-align:center; font-size: 90%;">
-Agent return (left), WM error vs ground truth (middle), and WM-policy return on unseen goals (right), as a function of <i>Q</i>-network depth and width. More capacity \(\Rightarrow\) better agent <i>and</i> better implicit world model.
+Agent return (left), WM error vs ground truth (middle), and WM-policy return on unseen goals (right), as a function of $Q$-network depth and width. More capacity $\Rightarrow$ better agent <i>and</i> better implicit world model.
 </p>
 </div>
 </div>
@@ -276,7 +280,7 @@ We train one <code>MountainCar</code> agent on five position-based goals and ano
 
 <img src="imgs/mountaincar_quiver.png" style="width:70%;image-rendering:auto;display:block;margin:0 auto;">
 <p style="text-align:center; font-size: 90%;">
-Quiver plots of world models extracted from two agents trained with orthogonal goal families. Arrows show predicted next state from each root state for action \(a = \text{right}\). The two agents have <i>very different objectives</i>, yet learn <i>nearly the same dynamics</i>.
+Quiver plots of world models extracted from two agents trained with orthogonal goal families. Arrows show predicted next state from each root state for action $a = \text{right}$. The two agents have <i>very different objectives</i>, yet learn <i>nearly the same dynamics</i>.
 </p>
 
 <p>
@@ -293,34 +297,34 @@ This suggests an informal <b>local-to-global hypothesis</b>: value-based agents 
 On three increasingly stochastic variants of the classic <a href="https://www.sciencedirect.com/science/article/pii/S0004370299000521">FourRooms</a> gridworld, we directly validate the finite-MDP theory. In each case we plot, on two <i>unseen</i> goals (an "unsafe-state" task whose optimal policy must detour around a trap), the optimal policy (dashed) against the policy obtained by value iteration inside the extracted world model (solid). They visually coincide once the goal budget reaches the predicted threshold &mdash; with sample efficiency well beyond what our worst-case theory guarantees.<br />
 </p>
 
-<h4 style="margin-top:18px;"><b>Deterministic</b> &mdash; one generic goal suffices (\(|\mathcal{G}| = 1\))</h4>
+<h4 style="margin-top:18px;"><b>Deterministic</b> &mdash; one generic goal suffices ($|\mathcal{G}| = 1$)</h4>
 <img src="imgs/gridworld_deterministic_traj.png" style="width:100%;image-rendering:auto;">
 <p style="text-align:center; font-size: 90%;">
-Optimal (dashed) vs. WM-derived (solid) policy on two unseen unsafe-state goals, with \(V^\star\) as background heatmap. A single training goal is enough to recover the kernel exactly, in line with the finite-deterministic theorem.
+Optimal (dashed) vs. WM-derived (solid) policy on two unseen unsafe-state goals, with $V^\star$ as background heatmap. A single training goal is enough to recover the kernel exactly, in line with the finite-deterministic theorem.
 </p>
 <img src="imgs/gridworld_deterministic_mse.png" style="width:60%;image-rendering:auto;display:block;margin:0 auto;">
 <p style="text-align:center; font-size: 90%;">
-World-model MSE vs. environment steps. With \(|\mathcal{G}| = 1\), \(\hat{P}\) converges to <i>zero</i> MSE within 8M steps; \(|\mathcal{G}| = 3, 5\) converge faster.
+World-model MSE vs. environment steps. With $|\mathcal{G}| = 1$, $\hat{P}$ converges to <i>zero</i> MSE within 8M steps; $|\mathcal{G}| = 3, 5$ converge faster.
 </p>
 
-<h4 style="margin-top:24px;"><b>Windy</b> &mdash; cardinal stochasticity, \(|\mathcal{G}| = 4\) suffices</h4>
+<h4 style="margin-top:24px;"><b>Windy</b> &mdash; cardinal stochasticity, $|\mathcal{G}| = 4$ suffices</h4>
 <img src="imgs/gridworld_windy_traj.png" style="width:100%;image-rendering:auto;">
 <p style="text-align:center; font-size: 90%;">
-Same plot for the windy variant, where the intended action is realised w.p. \(\tfrac{1}{2}\) and rotated 90&deg; either way w.p. \(\tfrac{1}{4}\) each. WM-policies match the optimal policy on both unseen goals once \(|\mathcal{G}| \geq 3\).
+Same plot for the windy variant, where the intended action is realised w.p. $\tfrac{1}{2}$ and rotated 90&deg; either way w.p. $\tfrac{1}{4}$ each. WM-policies match the optimal policy on both unseen goals once $|\mathcal{G}| \geq 3$.
 </p>
 <img src="imgs/gridworld_windy_mse.png" style="width:60%;image-rendering:auto;display:block;margin:0 auto;">
 <p style="text-align:center; font-size: 90%;">
-World-model MSE vs. training. Single-goal regime is under-determined for stochastic dynamics, but \(|\mathcal{G}| \geq 3\) reaches a few percent of oracle return.
+World-model MSE vs. training. Single-goal regime is under-determined for stochastic dynamics, but $|\mathcal{G}| \geq 3$ reaches a few percent of oracle return.
 </p>
 
-<h4 style="margin-top:24px;"><b>Teleporting</b> &mdash; non-local stochasticity, \(|\mathcal{G}| = 20\) suffices</h4>
+<h4 style="margin-top:24px;"><b>Teleporting</b> &mdash; non-local stochasticity, $|\mathcal{G}| = 20$ suffices</h4>
 <img src="imgs/gridworld_teleport_traj.png" style="width:100%;image-rendering:auto;">
 <p style="text-align:center; font-size: 90%;">
-Same plot for the teleporting variant, where four cells (marked T) re-emit the agent uniformly into the diagonally-opposite room. WM-derived and optimal policies coincide once \(|\mathcal{G}| \geq 20\) &mdash; well below the worst-case bound \(|\mathcal{G}|\geq|\mathcal{S}|=68\) of our stochastic-finite theorem.
+Same plot for the teleporting variant, where four cells (marked T) re-emit the agent uniformly into the diagonally-opposite room. WM-derived and optimal policies coincide once $|\mathcal{G}| \geq 20$ &mdash; well below the worst-case bound $|\mathcal{G}|\geq|\mathcal{S}|=68$ of our stochastic-finite theorem.
 </p>
 <img src="imgs/gridworld_teleport_mse.png" style="width:60%;image-rendering:auto;display:block;margin:0 auto;">
 <p style="text-align:center; font-size: 90%;">
-World-model MSE vs. training. \(|\mathcal{G}| = 20\) recovers \(\hat{P}\) to MSE \(\approx 2\times 10^{-3}\) and a quasi-optimal WM-policy on both unseen goals.
+World-model MSE vs. training. $|\mathcal{G}| = 20$ recovers $\hat{P}$ to MSE $\approx 2\times 10^{-3}$ and a quasi-optimal WM-policy on both unseen goals.
 </p>
 </div>
 </div>
@@ -332,7 +336,7 @@ World-model MSE vs. training. \(|\mathcal{G}| = 20\) recovers \(\hat{P}\) to MSE
 <div class="step2bullets">
 <ul class="org-ul">
 <li>Goal-conditioned value functions are <b>not</b> just policy summaries &mdash; they carry, in extractable form, a model of the world.<br /></li>
-<li><i>P</i>-learning provides a concrete algorithm for <b>inverting the Bellman equation</b>: \((Q, \pi, r) \mapsto P\).<br /></li>
+<li>$P$-learning provides a concrete algorithm for <b>inverting the Bellman equation</b>: $(Q, \pi, r) \mapsto P$.<br /></li>
 <li>The recovered model unlocks <b>zero-shot planning</b> for OOD goals, including on variables the reward never depended on &mdash; an "implicit generalisation" capability hidden inside ordinary model-free agents.<br /></li>
 <li>This bridges <b>model-based, model-free, and goal-conditioned RL</b>: with a rich enough goal set, the three paradigms become informationally equivalent.<br /></li>
 </ul>
