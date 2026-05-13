@@ -93,12 +93,12 @@
 <div class="row" style="margin-top: 15px;"> <div class="col-md-12 text-center">
 <ul class="org-ul list-inline">
 <li><image src="imgs/oxford_logo_background.png" height="45px"><br /></li>
-<li><image src="imgs/mila_logo.png" height="40px"><br /></li>
+<li><image src="imgs/mila_logo_purple.png" height="40px"><br /></li>
 </ul>
 </div> </div>
 
 
-<div class="row" style="margin-top: 10px"> <div class="col-md-4 col-md-offset-4 text-center">
+<div class="row" style="margin-top: 40px"> <div class="col-md-4 col-md-offset-4 text-center">
 <ul class="org-ul nav nav-pills nav-justified">
 <li><a href="https://arxiv.org/abs/2511.00000"><image src="imgs/thumbnail.jpg" height="60px"><h4><strong>Paper</strong></h4></a><br /></li>
 <li><a href="https://github.com/p-learning/p-learning"><image src="imgs/GitHub-Mark.png" height="60px"><h4><strong>Code</strong></h4></a><br /></li>
@@ -111,29 +111,24 @@
 <h2 id="hero" style="margin:0;"></h2>
 <div class="outline-text-2" id="text-hero">
 
-<blockquote style="margin-top:0;">
+<blockquote style="margin-top:0px;">
 <p>
-<b>TLDR:</b> Goal-conditioned value-based agents, trained on a sufficiently rich set of rewards, implicitly encode a <i>unique</i>, accurate world model &mdash; we prove this and extract the model with <b>$P$-learning</b>, the <i>inverse of $Q$-learning</i>: where $Q$-learning fixes the environment to find consistent values, $P$-learning fixes the values to find the consistent environment, effectively <b>inverting the Bellman equation</b>. The recovered model supports zero-shot planning on goals far outside the training distribution &mdash; even over state variables the agent never directly optimised for &mdash; revealing an <i>implicit generalisation</i> capability hidden inside ordinary model-free agents, and bridging model-based, model-free, and goal-conditioned RL.<br />
-
-We prove that model-free agents trained on diverse reward functions implicitly encode a unique world model, introduce $P$-learning to extract this in practice, and empirically demonstrate this in stochastic gridworlds, MountainCar, and Reacher.  <br/>
-
-We prove that goal-conditioned agents trained on a sufficiently rich set of rewards implicitly encode a unique, accurate world model — and introduce $P$-learning, an algorithm that extracts it from their $Q$-values by inverting the Bellman equation. The extracted world model unlocks zero-shot planning for goals far beyond the training distribution, even on variables the agent never directly optimised for.
-
-Model-free agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. We introduce $P$-learning to extract this in practice, and empirically demonstrate this in stochastic gridworlds, MountainCar, and Reacher.
+<b>TLDR:</b> We prove that model-free agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model (WM). We introduce <b>$P$-learning</b> to extract this WM in practice, and show that agents trained with a small number of sparse rewards encode accurate dynamics in ${\texttt{Reacher}}$, ${\texttt{MountainCar}}$, and stochastic variants of $\texttt{FourRooms}$. Surprisingly, policies derived exclusively from a ${\texttt{Reacher}}$ agent's implicit WM are quasi-optimal on velocity- and joint-based goals, despite position-only training.
+<!-- The policies trained using the extracted model (without any environment samples) are quasi-optimal for goals far beyond the training distribution, even over state variables the agent never directly optimised for. -->
 </p>
 </blockquote>
 
-<div id="hero-fig" class="figure" style="text-align:center;">
+<div id="hero-fig" class="figure" style="text-align:center; margin-top:40px;">
 <p><img src="imgs/hero.png" alt="P-learning teaser" style="width:82%;max-width:780px;" /><br />
 </p>
 </div>
 </div>
 
-<div id="outline-container-abstract" class="outline-3">
+<div id="outline-container-abstract" class="outline-3", style="margin-top:50px;">
 <h3 id="abstract">Abstract</h3>
 <div class="outline-text-3" id="text-abstract">
 <p>
-Model-based and model-free reinforcement learning are traditionally viewed as separate paradigms: while the former learns an explicit model of the transition dynamics $P$, model-free agents typically estimate value functions tied to a specific policy and reward. In this paper, we challenge this dichotomy by proving that value-based agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. To extract this model in practice, we introduce $P$-learning; analogous to $Q$-learning, which approximates $Q^\star$ using samples from the environment, $P$-learning extracts an agent's model of the environment $P^\star$ by sampling from its $Q$-values, policies, and rewards, effectively inverting the Bellman equation. In deterministic MDPs, we prove that the true kernel $P$ can be recovered from an agent trained on a single generic goal for finite state spaces $\mathcal{S}$, and a finite number of Gaussian goals for continuous $\mathcal{S} \subseteq \mathbb{R}^d$, provided $Q$-values are accurate. In the stochastic setting, these conditions generalise to larger sets of goals depending on the reward function family. Even when our assumptions are violated, we empirically demonstrate that agents trained with a small number of sparse rewards encode accurate dynamics in (i) stochastic variants of <code>FourRooms</code>, (ii) <code>MountainCar</code>, and (iii) <code>Reacher</code>. This is further validated by training policies inside the extracted world model, for goals far beyond the training distribution, suggesting that goal-conditioned agents secretly contain implicit generalisation capabilities and providing a new lens into the connection between model-based, model-free, and goal-conditioned RL.<br />
+Model-based and model-free reinforcement learning are traditionally viewed as separate paradigms: while the former learns an explicit model of the transition dynamics $P$, model-free agents typically estimate value functions tied to a specific policy and reward. In this paper, we challenge this dichotomy by proving that value-based agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. To extract this model in practice, we introduce \textit{$P$-learning}; analogous to $Q$-learning, which approximates $Q^\star$ using samples from the environment, $P$-learning extracts an agent's model of the environment $P^\star$ by sampling from its $Q$-values, policies, and rewards, effectively inverting the Bellman equation. In deterministic MDPs, we prove that the true kernel $P$ can be recovered from an agent trained on a single generic goal for finite state spaces $\mathcal{S}$, and a finite number of Gaussian goals for continuous $\mathcal{S} \subseteq \mathbb{R}^d$, provided $Q$-values are accurate. In the stochastic setting, these conditions generalise to larger sets of goals depending on the reward function family. Even when our assumptions are violated, we empirically demonstrate that agents trained with a small number of sparse rewards encode accurate dynamics in (i) stochastic variants of $\texttt{FourRooms}$, (ii) $\texttt{MountainCar}$, and (iii) $\texttt{Reacher}$. This is further validated by using the extracted model to plan quasi-optimally for goals far beyond the training distribution (without any additional environment samples), suggesting that goal-conditioned agents secretly contain implicit generalisation capabilities and providing a new lens into the connection between model-based, model-free, and goal-conditioned RL.
 </p>
 </div>
 </div>
@@ -167,7 +162,7 @@ Our answer: <b>agents trained on a sufficiently rich set of goals</b> &mdash; e.
 
 
 <div id="outline-container-method" class="outline-3">
-<h3 id="method">What is $P$-Learning?</h3>
+<h3 id="method">What is $P$-learning?</h3>
 <div class="outline-text-3" id="text-method">
 <p>
 The starting point is a simple symmetry. The Bellman equation for a goal-conditioned policy $\pi$ reads<br />
