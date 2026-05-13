@@ -292,26 +292,37 @@ This suggests an informal <b>local-to-global hypothesis</b>: value-based agents 
 <h3 id="fourrooms">Experiment: <code>FourRooms</code> &mdash; how many goals does stochasticity cost?</h3>
 <div class="outline-text-3" id="text-fourrooms">
 <p>
-On three increasingly stochastic variants of the classic <a href="https://www.sciencedirect.com/science/article/pii/S0004370299000521">FourRooms</a> gridworld, we directly validate the finite-MDP theory: very few goals suffice for quasi-perfect recovery, with the goal budget growing gracefully with stochasticity.<br />
+On three increasingly stochastic variants of the classic <a href="https://www.sciencedirect.com/science/article/pii/S0004370299000521">FourRooms</a> gridworld, we directly validate the finite-MDP theory. In each case we plot, on two <i>unseen</i> goals (an "unsafe-state" task whose optimal policy must detour around a trap), the optimal policy (dashed) against the policy obtained by value iteration inside the extracted world model (solid). They visually coincide once the goal budget reaches the predicted threshold &mdash; with sample efficiency well beyond what our worst-case theory guarantees.<br />
 </p>
 
-<div class="row">
-  <div class="col-md-4 text-center">
-    <img src="imgs/gridworld_deterministic.png" style="width:100%;">
-    <p><b>Deterministic</b> &mdash; \(|\mathcal{G}| = 1\) suffices.</p>
-  </div>
-  <div class="col-md-4 text-center">
-    <img src="imgs/gridworld_windy.png" style="width:100%;">
-    <p><b>Windy</b> &mdash; \(|\mathcal{G}| = 4\) suffices.</p>
-  </div>
-  <div class="col-md-4 text-center">
-    <img src="imgs/gridworld_teleport.png" style="width:100%;">
-    <p><b>Teleporting</b> &mdash; \(|\mathcal{G}| = 20\) suffices.</p>
-  </div>
-</div>
+<h4 style="margin-top:18px;"><b>Deterministic</b> &mdash; one generic goal suffices (\(|\mathcal{G}| = 1\))</h4>
+<img src="imgs/gridworld_deterministic_traj.png" style="width:100%;image-rendering:auto;">
+<p style="text-align:center; font-size: 90%;">
+Optimal (dashed) vs. WM-derived (solid) policy on two unseen unsafe-state goals, with \(V^\star\) as background heatmap. A single training goal is enough to recover the kernel exactly, in line with the finite-deterministic theorem.
+</p>
+<img src="imgs/gridworld_deterministic_mse.png" style="width:60%;image-rendering:auto;display:block;margin:0 auto;">
+<p style="text-align:center; font-size: 90%;">
+World-model MSE vs. environment steps. With \(|\mathcal{G}| = 1\), \(\hat{P}\) converges to <i>zero</i> MSE within 8M steps; \(|\mathcal{G}| = 3, 5\) converge faster.
+</p>
 
-<p>
-In each case, the world model converges to the true transition kernel as more goals are added &mdash; with sample efficiency well beyond what our worst-case theory guarantees.<br />
+<h4 style="margin-top:24px;"><b>Windy</b> &mdash; cardinal stochasticity, \(|\mathcal{G}| = 4\) suffices</h4>
+<img src="imgs/gridworld_windy_traj.png" style="width:100%;image-rendering:auto;">
+<p style="text-align:center; font-size: 90%;">
+Same plot for the windy variant, where the intended action is realised w.p. \(\tfrac{1}{2}\) and rotated 90&deg; either way w.p. \(\tfrac{1}{4}\) each. WM-policies match the optimal policy on both unseen goals once \(|\mathcal{G}| \geq 3\).
+</p>
+<img src="imgs/gridworld_windy_mse.png" style="width:60%;image-rendering:auto;display:block;margin:0 auto;">
+<p style="text-align:center; font-size: 90%;">
+World-model MSE vs. training. Single-goal regime is under-determined for stochastic dynamics, but \(|\mathcal{G}| \geq 3\) reaches a few percent of oracle return.
+</p>
+
+<h4 style="margin-top:24px;"><b>Teleporting</b> &mdash; non-local stochasticity, \(|\mathcal{G}| = 20\) suffices</h4>
+<img src="imgs/gridworld_teleport_traj.png" style="width:100%;image-rendering:auto;">
+<p style="text-align:center; font-size: 90%;">
+Same plot for the teleporting variant, where four cells (marked T) re-emit the agent uniformly into the diagonally-opposite room. WM-derived and optimal policies coincide once \(|\mathcal{G}| \geq 20\) &mdash; well below the worst-case bound \(|\mathcal{G}|\geq|\mathcal{S}|=68\) of our stochastic-finite theorem.
+</p>
+<img src="imgs/gridworld_teleport_mse.png" style="width:60%;image-rendering:auto;display:block;margin:0 auto;">
+<p style="text-align:center; font-size: 90%;">
+World-model MSE vs. training. \(|\mathcal{G}| = 20\) recovers \(\hat{P}\) to MSE \(\approx 2\times 10^{-3}\) and a quasi-optimal WM-policy on both unseen goals.
 </p>
 </div>
 </div>
