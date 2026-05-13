@@ -106,12 +106,16 @@
 
 <div class="row"> <div class="col-md-8 col-md-offset-2" style="text-align: justify;">
 <div id="outline-container-hero" class="outline-2">
-<h2 id="hero"></h2>
+<h2 id="hero" style="margin:0;"></h2>
 <div class="outline-text-2" id="text-hero">
 
-<blockquote>
+<blockquote style="margin-top:0;">
 <p>
-<b>TL;DR:</b> Goal-conditioned value-based agents, trained on a sufficiently rich set of rewards, implicitly encode a <i>unique</i>, accurate world model &mdash; we prove this and extract the model with <b><i>P</i>-learning</b>, the <i>inverse of Q-learning</i>: where <i>Q</i>-learning fixes the environment to find consistent values, <i>P</i>-learning fixes the values to find the consistent environment, effectively <b>inverting the Bellman equation</b>. The recovered model supports zero-shot planning on goals far outside the training distribution &mdash; even over state variables the agent never directly optimised for &mdash; revealing an <i>implicit generalisation</i> capability hidden inside ordinary model-free agents, and bridging model-based, model-free, and goal-conditioned RL.<br />
+<b>TLDR:</b> Goal-conditioned value-based agents, trained on a sufficiently rich set of rewards, implicitly encode a <i>unique</i>, accurate world model &mdash; we prove this and extract the model with <b><i>P</i>-learning</b>, the <i>inverse of Q-learning</i>: where <i>Q</i>-learning fixes the environment to find consistent values, <i>P</i>-learning fixes the values to find the consistent environment, effectively <b>inverting the Bellman equation</b>. The recovered model supports zero-shot planning on goals far outside the training distribution &mdash; even over state variables the agent never directly optimised for &mdash; revealing an <i>implicit generalisation</i> capability hidden inside ordinary model-free agents, and bridging model-based, model-free, and goal-conditioned RL.<br />
+
+We prove that model-free agents trained on diverse reward functions implicitly encode a unique world model, introduce P-learning to extract this in practice, and empirically demonstrate this in stochastic gridworlds, MountainCar, and Reacher.  <br/>
+
+We prove that goal-conditioned agents trained on a sufficiently rich set of rewards implicitly encode a unique, accurate world model — and introduce P-learning, an algorithm that extracts it from their Q-values by inverting the Bellman equation. The extracted world model unlocks zero-shot planning for goals far beyond the training distribution, even on variables the agent never directly optimised for.
 </p>
 </blockquote>
 
