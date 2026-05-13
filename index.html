@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inverting the Bellman Equation: From Q-Values to World Models</title>
+<meta name="author" content="Alistair Letcher" />
+<meta name="description" content="P-learning: extracting an accurate world model from a goal-conditioned agent's Q-values, bridging model-free, model-based, and goal-conditioned RL." />
+<meta name="keywords" content="reinforcement learning, world models, goal-conditioned RL, P-learning, Q-learning, Bellman equation, NeurIPS 2026" />
+<meta name="generator" content="Org Mode" />
+<script src="https://kit.fontawesome.com/1eb1a53221.js" crossorigin="anonymous"></script>
+<link rel="icon" type="image/x-icon" href="imgs/favicon.ico">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.css">
+<link rel="stylesheet" type="text/css" href="utils/style.css"/>
+<link rel="stylesheet" type="text/css" href="utils/bootstrap.min.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.3/clipboard.min.js"></script>
+<script src="utils/app.js"></script>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<script>
+  function toggleCollapse(c) {
+    c.classList.toggle("active");
+    var content = c.nextElementSibling;
+    if (content.style.maxHeight){
+      content.style.maxHeight = null;
+    } else {
+      content.style.maxHeight = content.scrollHeight + 20 + "px";
+    }
+  }
+</script>
+
+<div id="main" class="container">
+
+<p>
+<div class="row"><h2 class="col-md-12 text-center"><strong><font size="+4r">  Inverting the Bellman Equation:<br />From <i>Q</i>-Values to World Models  </font></strong></h2></div><br />
+</p>
+
+
+<div class="row"> <div class="col-md-12 text-center">
+<ul class="org-ul list-inline">
+<li>Alistair Letcher\(^{\alpha}\)<br /></li>
+<li>Mattie Fellows\(^{\alpha}\)<br /></li>
+<li>Alexander Goldie\(^{\alpha}\)<br /></li>
+<li>Jonathan Richens\(^{\beta}\)<br /></li>
+<li>Jakob Foerster\(^{\alpha}\)<br /></li>
+<li>Oliver Richardson\(^{\gamma}\)<br /></li>
+</ul>
+</div> </div>
+
+<div class="row"> <div class="col-md-12 text-center">
+<p>
+\(^{\alpha}\) FLAIR, University of Oxford &nbsp;&nbsp; \(^{\beta}\) Independent &nbsp;&nbsp; \(^{\gamma}\) Mila, Universit&eacute; de Montr&eacute;al
+</p>
+</div> </div>
+
+
+<div class="row"> <div class="col-md-12 text-center">
+<ul class="org-ul list-inline">
+<li><image src="imgs/oxford_logo.png" height="48px"><br /></li>
+<li><image src="imgs/flair_logo.png" height="48px"><br /></li>
+<li><image src="imgs/mila_logo.png" height="48px"><br /></li>
+</ul>
+</div> </div>
+
+
+<div class="row"> <div class="col-md-12 text-center"><font size="+2">
+<ul class="org-ul list-inline">
+<li>NeurIPS 2026 (under review)<br /></li>
+</ul>
+</font></div> </div>
+
+
+<div class="row"> <div class="col-md-6 col-md-offset-3 text-center">
+<ul class="org-ul nav nav-pills nav-justified">
+<li><a href="https://arxiv.org/abs/2511.00000"><image src="imgs/thumbnail.jpg" height="60px"><h4><strong>Paper</strong></h4></a><br /></li>
+<li><a href="https://arxiv.org/abs/2511.00000"><image src="imgs/thumbnail.jpg" height="60px"><h4><strong>arXiv</strong></h4></a><br /></li>
+<li><a href="https://github.com/p-learning/p-learning"><image src="imgs/GitHub-Mark.png" height="60px"><h4><strong>Code</strong></h4></a><br /></li>
+<li><a href="https://www.alphaxiv.org/abs/2511.00000"><image src="https://static.alphaxiv.org/logos/alphaxiv_logo.png" height="60px"><h4><strong>Discussion</strong></h4></a><br /></li>
+</ul>
+</div></div>
+
+<div class="row"> <div class="col-md-8 col-md-offset-2">
+<div id="outline-container-hero" class="outline-2">
+<h2 id="hero"></h2>
+<div class="outline-text-2" id="text-hero">
+
+<div id="hero-fig" class="figure">
+<p><img src="imgs/hero.png" alt="P-learning teaser" width="100%" /><br />
+</p>
+</div>
+
+<blockquote>
+<p>
+<b>TL;DR:</b> We prove that goal-conditioned agents trained on a sufficiently rich set of rewards implicitly encode a unique, accurate world model &mdash; and introduce <b><i>P</i>-learning</b>, an algorithm that extracts it from their <i>Q</i>-values by <b>inverting the Bellman equation</b>. The extracted world model unlocks zero-shot planning for goals far beyond the training distribution, even on variables the agent never directly optimised for.<br />
+</p>
+</blockquote>
+</div>
+
+<div id="outline-container-abstract" class="outline-3">
+<h3 id="abstract">Abstract</h3>
+<div class="outline-text-3" id="text-abstract">
+<p>
+Model-based and model-free reinforcement learning are traditionally viewed as separate paradigms: while the former learns an explicit model of the transition dynamics \(P\), model-free agents typically estimate value functions tied to a specific policy and reward. In this paper, we challenge this dichotomy by proving that value-based agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique and accurate world model. To extract this model in practice, we introduce <i>P</i>-learning; analogous to <i>Q</i>-learning, which approximates \(Q^\star\) using samples from the environment, <i>P</i>-learning extracts an agent's model of the environment \(P^\star\) by sampling from its <i>Q</i>-values, policies, and rewards, effectively inverting the Bellman equation. In deterministic MDPs, we prove that the true kernel \(P\) can be recovered from an agent trained on a single generic goal for finite state spaces \(\mathcal{S}\), and a finite number of Gaussian goals for continuous \(\mathcal{S} \subseteq \mathbb{R}^d\), provided <i>Q</i>-values are accurate. In the stochastic setting, these conditions generalise to larger sets of goals depending on the reward function family. Even when our assumptions are violated, we empirically demonstrate that agents trained with a small number of sparse rewards encode accurate dynamics in (i) stochastic variants of <code>FourRooms</code>, (ii) <code>MountainCar</code>, and (iii) <code>Reacher</code>. This is further validated by training policies inside the extracted world model, for goals far beyond the training distribution, suggesting that goal-conditioned agents secretly contain implicit generalisation capabilities and providing a new lens into the connection between model-based, model-free, and goal-conditioned RL.<br />
+</p>
+</div>
+</div>
+
+<div id="outline-container-overview" class="outline-3">
+<h3 id="overview">Overview</h3>
+<div class="outline-text-3" id="text-overview">
+<p>
+Model-free RL has powered many of the field's recent successes &mdash; but the policies and value functions it learns are entangled with a specific reward, making it hard to ask what an agent <i>understands</i> about the world (as opposed to what it <i>values</i>). Formally, distinct transition kernels can yield identical value functions, the well-known <a href="https://arxiv.org/abs/2011.03506">value equivalence</a> problem. So we ask:<br />
+</p>
+
+<blockquote>
+<p>
+<i>When do value-based agents encode an accurate model of their environment?</i>
+</p>
+</blockquote>
+
+<p>
+Our answer: <b>agents trained on a sufficiently rich set of goals</b> &mdash; e.g. via goal-conditioned RL, successor features, or forward-backward learning &mdash; implicitly learn a <b>unique world model</b>, which we can extract by inverting the Bellman equation. Concretely, the paper makes three contributions:<br />
+</p>
+
+<div class="step2bullets">
+<ul class="org-ul">
+<li><b>Methodologically</b>, we introduce <b><i>P</i>-learning</b>, an inverse analogue to <i>Q</i>-learning. Instead of iteratively updating value estimates for a fixed environment, <i>P</i>-learning updates a candidate world model to be consistent with fixed value functions, converging to a world model that explains the <i>Q</i>-values.<br /></li>
+<li><b>Theoretically</b>, we prove conditions under which value equivalence is broken and <i>P</i>-learning recovers the true transition kernel exactly. In deterministic MDPs, a <b>single</b> generic goal suffices for finite \(\mathcal{S}\), and a finite number of Gaussian goals for continuous \(\mathcal{S}\subseteq \mathbb{R}^d\). In stochastic MDPs, \(|\mathcal{G}|\geq |\mathcal{S}|\) goals (finite) or any goal set with non-empty interior (continuous) suffice, with tight \(\Theta(\varepsilon)\) error bounds for \(\varepsilon\)-approximate <i>Q</i>-values.<br /></li>
+<li><b>Empirically</b>, we recover accurate world models from agents trained with surprisingly few goals on stochastic variants of <code>FourRooms</code>, <code>MountainCar</code>, and MuJoCo <code>Reacher</code>. The extracted model supports <b>zero-shot planning</b> for goals far outside the training distribution, even on variables the reward never directly depended on &mdash; providing a new lens on the link between model-based, model-free, and goal-conditioned RL.<br /></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-method" class="outline-3">
+<h3 id="method">What is <i>P</i>-Learning?</h3>
+<div class="outline-text-3" id="text-method">
+<p>
+The starting point is a simple symmetry. The Bellman equation for a goal-conditioned policy \(\pi\) reads<br />
+</p>
+
+<p>
+\[ \mathcal{T}^\pi_{P}(Q)(s, a, g) = \mathbb{E}_{s' \sim P(s,a),\,a'\sim\pi(s',g)}\bigl[\,r(s', g) + \gamma\, Q(s', a', g)\,\bigr] \,. \]<br />
+</p>
+
+<p>
+<b><i>Q</i>-learning</b> takes the environment \(P\) as <i>fixed</i> and searches for a value function \(Q\) that satisfies \(\mathcal{T}^\pi_P(Q) = Q\). <b><i>P</i>-learning</b> flips this: it takes a goal-conditioned <i>Q</i>-function (and policy and reward) as <i>fixed</i>, and searches for a transition kernel \(P_\phi\) that satisfies the same equation. We minimise the Bellman residual with respect to \(\phi\):<br />
+</p>
+
+<p>
+\[ \mathcal{L}(\phi) \;=\; \bigl\| \mathcal{T}^\pi_\phi(Q) - Q \bigr\|_d^2 \,. \]<br />
+</p>
+
+<p>
+Unlike <i>Q</i>-learning, <i>P</i>-learning is gradient descent on a <i>stationary</i> objective, so it inherits the standard convergence guarantees of SGD. In the tabular case, we can write the update in closed form. Stacking next-state values \(M_{lk} = r(s'_k, g_l) + \gamma V(s'_k, g_l)\) into a matrix \(M\), the Bellman equation becomes a linear system \(M\,P_\phi(s,a) = Q(s,a)\), and <i>P</i>-learning converges to<br />
+</p>
+
+<p>
+\[ P_\infty(s,a) \;=\; M^{+}\, Q(s,a) \;+\; \bigl(I - M^{+}M\bigr)\, P_0(s,a)\,, \]<br />
+</p>
+
+<p>
+where \(M^{+}\) is the Moore&ndash;Penrose pseudo-inverse. When \(M\) has full rank, the second term vanishes and \(M^{+}\) acts as an <b>inverse Bellman map</b> from values back to dynamics &mdash; the analogue, for <i>P</i>-iteration, of the contraction underlying classical <i>Q</i>-iteration. If the <i>Q</i>-values are exact for the true kernel, <i>P</i>-learning recovers <b>exactly</b> that kernel.<br />
+</p>
+
+<p>
+For continuous state spaces, we parameterise \(P_\phi\) as a neural network and train it by gradient descent on \(\mathcal{L}(\phi)\), using the reparameterisation trick for stochastic dynamics or a deterministic successor function in the deterministic case. The full algorithm is in the paper.<br />
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-theory" class="outline-3">
+<h3 id="theory">Theory: When are values informationally equivalent to dynamics?</h3>
+<div class="outline-text-3" id="text-theory">
+<p>
+The classical obstacle to recovering \(P\) from values is <b>value equivalence</b>: many kernels give the same \(Q^\pi\) for a fixed reward. Our theorems pin down exactly when <i>multiple</i> goals break this degeneracy.<br />
+</p>
+
+<div class="step2bullets">
+<ul class="org-ul">
+<li><b>Deterministic, finite \(\mathcal{S}\):</b> a <i>single</i> generic goal suffices to recover \(P\) exactly &mdash; with <b>no</b> assumptions on policy optimality.<br /></li>
+<li><b>Deterministic, continuous \(\mathcal{S}\subseteq\mathbb{R}^d\):</b> a <i>finite</i> set of Gaussian goals suffices.<br /></li>
+<li><b>Stochastic, finite \(\mathcal{S}\):</b> \(|\mathcal{G}| \geq |\mathcal{S}|\) generic goals suffice for exact recovery, with tight \(\Theta(\varepsilon)\) error bounds when <i>Q</i>-values are \(\varepsilon\)-approximate.<br /></li>
+<li><b>Stochastic, continuous \(\mathcal{S}\subseteq\mathbb{R}^d\):</b> any goal set with non-empty interior suffices (for unconditional policies).<br /></li>
+</ul>
+</div>
+
+<p>
+Taken together: <b>once the goal set is rich enough, the collection \((Q_g, \pi_g, r_g)_{g\in\mathcal{G}}\) is informationally equivalent to the transition kernel \(P\) itself.</b> Model-free, when extended to a family of rewards, recovers all the structural content of model-based.<br />
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-reacher" class="outline-3">
+<h3 id="reacher">Experiment: <code>Reacher</code> &mdash; planning beyond the training distribution</h3>
+<div class="outline-text-3" id="text-reacher">
+<p>
+We train a goal-conditioned <a href="https://arxiv.org/abs/2407.04811">PQN</a> agent on MuJoCo <code>Reacher</code> with only \(|\mathcal{G}|=4\) sparse, position-based goals at the cardinal directions, and extract its implicit world model with <i>P</i>-learning. Despite imperfect <i>Q</i>-values (MSE \(=4.2\cdot10^{-2}\)), the recovered model matches ground-truth dynamics with high fidelity (MSE \(=1.0\cdot10^{-4}\)).<br />
+</p>
+
+<img src="imgs/reacher_dynamics.png" style="width:100%;image-rendering:auto;">
+<p style="text-align:center; font-size: 90%;">
+<i>Left two panels:</i> world-model prediction of next-state fingertip <i>y</i>-position vs ground truth, for a fixed action. <i>Right two panels:</i> WM vs ground-truth trajectory rollouts under the trained policy.
+</p>
+
+<p>
+To test whether the model captures more than what the reward saw, we plan inside it for three <b>out-of-distribution</b> goals &mdash; including goals on joint angles and velocities, dimensions the agent never directly optimised for. Policies derived purely from the extracted world model are <b>quasi-optimal</b> on all three, despite position-only training:<br />
+</p>
+
+<div class="row"><div class="col-md-8 col-md-offset-2">
+<table border="1" cellspacing="0" cellpadding="6" rules="all" frame="border" style="margin:0 auto; text-align:center;">
+<thead><tr><th>Unseen goal</th><th>Optimal \(R_\gamma^\star\)</th><th>WM-trained \(R_\gamma^{\text{WM}}\)</th></tr></thead>
+<tbody>
+<tr><td>Far fingertip \((\sqrt{2},\sqrt{2})\)</td><td>0.71 &plusmn; 0.07</td><td>0.70 &plusmn; 0.07</td></tr>
+<tr><td>Target joint angle</td><td>0.68 &plusmn; 0.06</td><td>0.67 &plusmn; 0.07</td></tr>
+<tr><td>Target velocity</td><td>0.65 &plusmn; 0.06</td><td>0.65 &plusmn; 0.06</td></tr>
+</tbody>
+</table>
+</div></div>
+<br />
+
+<p>
+Crucially, the angle- and velocity-based goals could <b>not</b> have been solved with position-based successor features &mdash; their optimal <i>Q</i>-functions are not linear combinations of training <i>Q</i>-functions. The agent's value function genuinely encodes the geometry of the environment.<br />
+</p>
+
+<p>
+We also test whether <b>better agents have better implicit world models</b>, by sweeping the <i>Q</i>-network architecture. The Spearman correlation between agent return and WM error is \(\rho = -0.98\) (95% CI \([-0.99, -0.94]\)), and between agent return and WM-policy return on unseen goals is \(\rho = +0.92\) &mdash; suggesting that <b>performance and implicit generalisation are tightly coupled</b>.<br />
+</p>
+
+<img src="imgs/reacher_correlation.png" style="width:100%;image-rendering:auto;">
+<p style="text-align:center; font-size: 90%;">
+Agent return (left), WM error vs ground truth (middle), and WM-policy return on unseen goals (right), as a function of <i>Q</i>-network depth and width. More capacity \(\Rightarrow\) better agent <i>and</i> better implicit world model.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-mountaincar" class="outline-3">
+<h3 id="mountaincar">Experiment: <code>MountainCar</code> &mdash; agents with orthogonal goals secretly agree</h3>
+<div class="outline-text-3" id="text-mountaincar">
+<p>
+We train one <code>MountainCar</code> agent on five position-based goals and another on five velocity-based goals &mdash; <i>orthogonal</i> reward families. The implicit world models extracted from each are <b>nearly identical</b>, and ~15&times; closer to each other than either is to ground truth:<br />
+</p>
+
+<img src="imgs/mountaincar_quiver.png" style="width:70%;image-rendering:auto;display:block;margin:0 auto;">
+<p style="text-align:center; font-size: 90%;">
+Quiver plots of world models extracted from two agents trained with orthogonal goal families. Arrows show predicted next state from each root state for action \(a = \text{right}\). The two agents have <i>very different objectives</i>, yet learn <i>nearly the same dynamics</i>.
+</p>
+
+<p>
+This suggests an informal <b>local-to-global hypothesis</b>: value-based agents trained on a small number of <i>local</i> reward functions (each defined on a subset of variables) tend to encode an accurate model <i>over all dependent environment variables</i>.<br />
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-fourrooms" class="outline-3">
+<h3 id="fourrooms">Experiment: <code>FourRooms</code> &mdash; how many goals does stochasticity cost?</h3>
+<div class="outline-text-3" id="text-fourrooms">
+<p>
+On three increasingly stochastic variants of the classic <a href="https://www.sciencedirect.com/science/article/pii/S0004370299000521">FourRooms</a> gridworld, we directly validate the finite-MDP theory: very few goals suffice for quasi-perfect recovery, with the goal budget growing gracefully with stochasticity.<br />
+</p>
+
+<div class="row">
+  <div class="col-md-4 text-center">
+    <img src="imgs/gridworld_deterministic.png" style="width:100%;">
+    <p><b>Deterministic</b> &mdash; \(|\mathcal{G}| = 1\) suffices.</p>
+  </div>
+  <div class="col-md-4 text-center">
+    <img src="imgs/gridworld_windy.png" style="width:100%;">
+    <p><b>Windy</b> &mdash; \(|\mathcal{G}| = 4\) suffices.</p>
+  </div>
+  <div class="col-md-4 text-center">
+    <img src="imgs/gridworld_teleport.png" style="width:100%;">
+    <p><b>Teleporting</b> &mdash; \(|\mathcal{G}| = 20\) suffices.</p>
+  </div>
+</div>
+
+<p>
+In each case, the world model converges to the true transition kernel as more goals are added &mdash; with sample efficiency well beyond what our worst-case theory guarantees.<br />
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-takeaways" class="outline-3">
+<h3 id="takeaways">Takeaways</h3>
+<div class="outline-text-3" id="text-takeaways">
+<div class="step2bullets">
+<ul class="org-ul">
+<li>Goal-conditioned value functions are <b>not</b> just policy summaries &mdash; they carry, in extractable form, a model of the world.<br /></li>
+<li><i>P</i>-learning provides a concrete algorithm for <b>inverting the Bellman equation</b>: \((Q, \pi, r) \mapsto P\).<br /></li>
+<li>The recovered model unlocks <b>zero-shot planning</b> for OOD goals, including on variables the reward never depended on &mdash; an "implicit generalisation" capability hidden inside ordinary model-free agents.<br /></li>
+<li>This bridges <b>model-based, model-free, and goal-conditioned RL</b>: with a rich enough goal set, the three paradigms become informationally equivalent.<br /></li>
+</ul>
+</div>
+
+<p>
+We hope this perspective opens up new directions for hybrid algorithms, interpretability tools, and auditing methods built on the world models implicit in trained agents.<br />
+</p>
+</div>
+</div>
+
+</div></div>
+</div>
+
+
+<div class="row">
+<div class="col-md-8 col-md-offset-2">
+<h3>Citation</h3>
+<div class="form-group col-md-10 col-md-offset-1"><textarea id="bibtex" class="form-control" readonly rows="10">
+@inproceedings{letcher2026inverting,
+    title={Inverting the Bellman Equation: From $Q$-Values to World Models},
+    author={Letcher, Alistair and Fellows, Mattie and Goldie, Alexander and Richens, Jonathan and Foerster, Jakob and Richardson, Oliver},
+    booktitle={Advances in Neural Information Processing Systems},
+    year={2026}
+}</textarea>
+</div>
+</div>
+</div>
+
+
+<div class="row"><div class="col-md-8 col-md-offset-2"><p class="text-justify">
+<br><br>
+The website template was borrowed from <a href="http://easyacademicwebsite.github.io">Easy Academic Website Template</a> and <a href="http://jonbarron.info/">Jon Barron</a>.
+</p>
+</div>
+</div>
+
+</div>
+</div>
+</body>
+</html>
