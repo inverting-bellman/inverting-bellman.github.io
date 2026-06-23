@@ -1,0 +1,29 @@
+Paper headlines.
+All numbers are mean ± SE across seeds.
+
+Reacher (10 seeds)
+  Q_MSE   = 4.4e-03 ± 8.7e-05
+  Q_NMSE  = 5.7e-01 ± 1.0e-02
+  WM_MSE  = 8.7e-05 ± 2.8e-06
+  WM_NMSE = 1.2e-04 ± 2.9e-06
+
+  Unseen goal                           R*                R_WM
+  Far_fingertip            0.712 ± 0.077      0.708 ± 0.083
+  Target_angle             0.679 ± 0.072      0.673 ± 0.081
+  Target_velocity          0.652 ± 0.060      0.647 ± 0.064
+
+MountainCar (10 seeds)
+  Q_MSE   = 4.3e-03 ± 4.7e-04
+  Q_NMSE  = 1.0e-01 ± 1.1e-02
+  WM_MSE  = 5.4e-05 ± 1.9e-05
+  WM_NMSE = 6.7e-03 ± 1.2e-04
+
+  Unseen goal                           R*                R_WM
+  Fast_car                 0.436 ± 0.019      0.357 ± 0.125
+  Gentle_car               0.377 ± 0.028      0.308 ± 0.132
+  Shortest_path            0.625 ± 0.045      0.591 ± 0.099
+
+  Cross-WM (MountainCar):
+    position_vs_velocity : NMSE = 1.7e-04 ± 9.8e-05
+    position_vs_true     : NMSE = 7.2e-03 ± 1.2e-04
+    velocity_vs_true     : NMSE = 7.3e-03 ± 2.4e-05

@@ -1,0 +1,31 @@
+Cross-WM metrics (n=10 seeds).
+
+── position_vs_velocity ──
+action_dim                              MSE                   NMSE
+left_position             4.2e-05 ± 3.3e-05      1.5e-04 ± 1.2e-04
+left_velocity             3.5e-07 ± 1.4e-07      2.1e-04 ± 8.6e-05
+none_position             4.2e-05 ± 3.3e-05      1.5e-04 ± 1.2e-04
+none_velocity             3.0e-07 ± 1.4e-07      1.8e-04 ± 8.5e-05
+right_position            3.9e-05 ± 3.1e-05      1.4e-04 ± 1.1e-04
+right_velocity            2.8e-07 ± 1.1e-07      1.7e-04 ± 6.8e-05
+Avg position_vs_velocity: MSE=2.1e-05 ± 1.6e-05 NMSE=1.7e-04 ± 9.8e-05
+
+── position_vs_true ──
+action_dim                              MSE                   NMSE
+left_position             9.2e-05 ± 3.7e-05      3.4e-04 ± 1.4e-04
+left_velocity             2.4e-05 ± 1.9e-07      1.5e-02 ± 1.1e-04
+none_position             9.1e-05 ± 3.9e-05      3.4e-04 ± 1.4e-04
+none_velocity             2.3e-05 ± 1.6e-07      1.4e-02 ± 1.0e-04
+right_position            8.8e-05 ± 3.3e-05      3.2e-04 ± 1.2e-04
+right_velocity            2.1e-05 ± 1.6e-07      1.3e-02 ± 9.8e-05
+Avg position_vs_true: MSE=5.7e-05 ± 1.8e-05 NMSE=7.2e-03 ± 1.2e-04
+
+── velocity_vs_true ──
+action_dim                              MSE                   NMSE
+left_position             8.0e-05 ± 8.3e-06      2.9e-04 ± 3.0e-05
+left_velocity             2.5e-05 ± 6.9e-08      1.5e-02 ± 4.2e-05
+none_position             8.0e-05 ± 8.3e-06      2.9e-04 ± 3.1e-05
+none_velocity             2.3e-05 ± 5.6e-08      1.4e-02 ± 3.4e-05
+right_position            8.0e-05 ± 7.7e-06      2.9e-04 ± 2.8e-05
+right_velocity            2.2e-05 ± 6.5e-08      1.3e-02 ± 4.0e-05
+Avg velocity_vs_true: MSE=5.2e-05 ± 4.0e-06 NMSE=7.3e-03 ± 2.4e-05

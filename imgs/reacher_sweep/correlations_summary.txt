@@ -1,0 +1,7 @@
+── Final checkpoint (step 610, n=42 archs) ──
+           return_vs_log_mse  Pearson r=-0.820 [-0.879, -0.758]  p=3.21e-11    Spearman ρ=-0.979 [-0.990, -0.945]  p=2.03e-29
+     return_vs_unseen_return  Pearson r=+0.949 [+0.920, +0.972]  p=1.24e-21    Spearman ρ=+0.952 [+0.894, +0.972]  p=3.53e-22
+    log_mse_vs_unseen_return  Pearson r=-0.821 [-0.883, -0.767]  p=2.84e-11    Spearman ρ=-0.964 [-0.982, -0.914]  p=1.49e-24
+
+── During training: pooled across 42 archs × 21 checkpoints (n=882, clustered bootstrap CI) ──
+  return_vs_log_mse  Pearson r=-0.649 [-0.707, -0.583]    Spearman ρ=-0.926 [-0.946, -0.877]

@@ -1,0 +1,757 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inverting the Bellman Equation: From Q-Values to World Models</title>
+<meta name="author" content="Alistair Letcher" />
+<meta name="description" content="P-learning: extracting an accurate world model from a goal-conditioned agent's Q-values, bridging model-free, model-based, and goal-conditioned RL." />
+<meta name="keywords" content="reinforcement learning, world models, goal-conditioned RL, P-learning, Q-learning, Bellman equation" />
+<meta name="generator" content="Org Mode" />
+<link rel="icon" type="image/x-icon" href="imgs/robot.ico">
+<link rel="stylesheet" type="text/css" href="utils/vendor/codemirror.min.css"/>
+<link rel="stylesheet" type="text/css" href="utils/style.css"/>
+<link rel="stylesheet" type="text/css" href="utils/bootstrap.min.css"/>
+<style>
+  .wrapfig-right { float: right; width: 45%; margin: 6px 0 14px 30px; }
+  @media (max-width: 991px) {
+    .wrapfig-right { float: none; width: 90%; margin: 14px auto; }
+  }
+  .caption { font-size: 0.9em; line-height: 1.45; color: #555; text-align: justify; margin-top: 8px; }
+  .caption-block { max-width: 85%; margin-left: auto; margin-right: auto; }
+  .result-box { border: 1px solid #cfe0f5; background: #f4f8fd; border-radius: 10px; padding: 2px 20px; margin: 22px auto; max-width: 95%; }
+  .result-box .result-label { display: block; text-align: center; font-size: 0.82em; font-weight: 600; letter-spacing: 0.02em; color: #0d579c; margin: 10px 0 -4px; }
+  .algorithm { border-top: 1.5px solid #333; border-bottom: 1.5px solid #333; padding: 8px 14px 12px; margin: 22px auto 6px; max-width: 96%; font-size: 0.95em; line-height: 1.55; text-align: left; }
+  .algorithm .algo-title { font-weight: 700; border-bottom: 1px solid #aaa; padding-bottom: 6px; margin-bottom: 8px; }
+  .algorithm .algo-require { margin-bottom: 6px; }
+  .algorithm .algo-line { display: flex; align-items: baseline; }
+  .algorithm .algo-line .ln { flex: 0 0 1.8em; text-align: right; padding-right: 0.9em; color: #999; }
+  .algorithm .algo-line .lt.indent { padding-left: 1.6em; }
+  .frooms-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+  .frooms-row .fr-mse  { flex: 0 0 45%; }   /* width knob: 45% for first panel smaller */
+  .frooms-row .fr-traj { flex: 1 1 0; min-width: 0; position: relative; top: -12px; }   /* top knob: negative raises the trajectory panel to align with MSE */
+  @media (max-width: 991px) {
+    .frooms-row { flex-direction: column; }
+    .frooms-row .fr-mse, .frooms-row .fr-traj { flex: 0 0 auto; width: 100%; top: 0; }
+  }
+  .link-row > li { vertical-align: top; }   
+  .link-row .icon-box { display: flex; align-items: center; justify-content: center; height: 60px; }
+  .link-row .icon-box img { max-width: 100%; }
+  .logo-row > li { padding: 0 20px; }
+  code { color: inherit; background-color: rgba(175,184,193,0.18); padding: .08em .28em; border-radius: 5px; font-size: 88%; }
+  h1 code, h2 code, h3 code, h4 code, h5 code, h6 code { font-size: 0.8em; }
+  h3 { margin-top: 40px; margin-bottom: 16px; }
+  a, a:visited { color: #0d579c; }
+  a:hover { color: #08436f; }
+</style>
+<script defer src="utils/vendor/jquery.min.js"></script>
+<script defer src="utils/vendor/codemirror.min.js"></script>
+<script defer src="utils/app.js"></script>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em',
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="utils/vendor/mathjax/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<script>
+  function toggleCollapse(c) {
+    c.classList.toggle("active");
+    var content = c.nextElementSibling;
+    if (content.style.maxHeight){
+      content.style.maxHeight = null;
+    } else {
+      content.style.maxHeight = content.scrollHeight + 20 + "px";
+    }
+  }
+</script>
+
+<div id="main" class="container">
+
+<!-- =================== HEADER · TITLE · AUTHORS · LINKS =================== -->
+
+<p>
+<div class="row"><h2 class="col-md-12 text-center"><strong><font size="+4r">  Inverting the Bellman Equation:<br />From $Q$-Values to World Models  </font></strong></h2></div><br />
+</p>
+
+
+<div class="row"> <div class="col-md-12 text-center" style="font-size:17px;">
+<ul class="org-ul list-inline">
+<li><b>Alistair Letcher</b><br /></li>
+<li><b>Mattie Fellows</b><br /></li>
+<li><b>Alexander Goldie</b><br /></li>
+<li><b>Jonathan Richens</b><br /></li>
+<li><b>Jakob Foerster</b><br /></li>
+<li><b>Oliver Richardson</b><br /></li>
+</ul>
+</div> </div>
+
+
+<div class="row" style="margin-top: 15px; margin-left:-50px"> <div class="col-md-12 text-center">
+<ul class="org-ul list-inline logo-row">
+<li><img src="imgs/oxford_logo_background.png" height="40px"><br /></li>
+<li><img src="imgs/deepmind_logo_blue.png" height="35px"><br /></li>
+<li><img src="imgs/mila_logo.png" height="33px"><br /></li>
+</ul>
+</div> </div>
+
+
+<div class="row" style="margin-top: 40px"> <div class="col-md-6 col-md-offset-3 text-center">
+<ul class="org-ul nav nav-pills nav-justified link-row">
+<li><a href="https://arxiv.org/pdf/2606.21173"><span class="icon-box"><img src="imgs/arxiv_logo.png" style="height:36px;"></span><h4><strong>Paper</strong></h4></a><br /></li>
+<li><a href="https://github.com/aletcher/inverting-bellman"><span class="icon-box"><img src="imgs/github_logo.png" style="height:62px;"></span><h4><strong>Code</strong></h4></a><br /></li>
+<li><a href="mailto:aletcher@robots.ox.ac.uk"><span class="icon-box"><img src="imgs/mail.png" style="height:50px;"></span><h4><strong>Contact</strong></h4></a><br /></li>
+</ul>
+</div></div>
+
+<div class="row"> <div class="col-md-8 col-md-offset-2" style="text-align: justify;">
+
+<!-- =================== TL;DR + HERO FIGURE =================== -->
+<div id="outline-container-hero" class="outline-2">
+<h2 id="hero" style="margin:0;"></h2>
+<div class="outline-text-2" id="text-hero">
+
+<blockquote style="margin-top:0px;">
+<p>
+<b>TLDR:</b> We prove that model-free agents trained on a sufficiently rich set of reward functions, e.g. using goal-conditioned RL, implicitly encode a unique world model (WM) in their $Q$-values. We introduce <b>$P$-learning</b> to extract this WM in practice, and show that agents trained on just a handful of goals encode accurate dynamics in <code>Reacher</code>, <code>MountainCar</code>, and stochastic <code>FourRooms</code>, even over variables that rewards never directly depend on. Surprisingly, policies trained exclusively on a <code>Reacher</code> agent's implicit WM are quasi-optimal on velocity-based goals despite position-only training.
+</p>
+</blockquote>
+
+<div id="hero-fig" class="figure" style="text-align:justify; margin-top:40px;">
+<p><img src="imgs/hero/hero_2x2_row_arrows.png" alt="Illustration of P-learning" style="width:100%;max-width:780px;" /><br />
+</p>
+</div>
+</div>
+
+<!-- =================== OVERVIEW =================== -->
+<div id="outline-container-overview" class="outline-3" style="margin-top:50px;">
+<h3 id="overview">Overview</h3>
+<div class="outline-text-3" id="text-overview">
+<p>
+The value functions typically learnt by model-free agents are intrinsically tied to policies and reward functions, making it challenging to interpret what they <i>understand</i> of the world (as separate from what they <i>value</i>). In general, distinct worlds (transition kernels) can give rise to identical value functions, an obstacle formalised as the <a href="https://arxiv.org/abs/2011.03506">value equivalence</a> problem. $\newcommand{\cS}{\mathcal{S}} \newcommand{\cA}{\mathcal{A}} \newcommand{\cG}{\mathcal{G}} \newcommand{\cT}{\mathcal{T}} \newcommand{\E}{\mathbb{E}} \newcommand{\eq}{:=} \newcommand{\om}{\omega}$
+This raises the question:<br />
+</p>
+
+<blockquote style="text-align:center; display:table; margin:0 auto 20px;">
+<p>
+<i>When do model-free agents encode an accurate model of their environment?</i>
+</p>
+</blockquote>
+
+<p>
+We hypothesise that agents trained on a sufficiently rich set of goals &mdash; e.g. via goal-conditioned RL (GCRL), successor features, or forward-backward learning &mdash; implicitly learn a unique world model. Taking GCRL as the broader framework for agents trained on goals parameterised by arbitrary reward functions, our work makes three contributions to test this hypothesis and bridge model-based, model-free and goal-conditioned RL. <br />
+</p>
+
+<div class="step2bullets">
+<ul class="org-ul">
+<li><b>Methodologically</b>, we introduce <i>$P$-learning</i>, an inverse analogue to $Q$-learning: instead of iteratively updating value estimates for a fixed environment, $P$-learning updates a candidate WM to be consistent with fixed value functions, effectively inverting the Bellman equation. We make this precise by proving that tabular $P$-learning converges to a closed-form expression involving the Moore-Penrose pseudo-inverse.</li>
+<li><b>Theoretically</b>, we prove conditions on the families of reward functions for which value equivalence is broken, i.e. for which $P$ is uniquely determined by $Q$-values. Our results demonstrate that GCRL can bridge model-free and model-based RL, with $Q$-values (paired with rewards) becoming informationally equivalent to the kernel $P$.</li>
+<li><b>Empirically</b>, we show that agents trained with a handful of goals often contain accurate WMs, even in continuous spaces like <code>Reacher</code>, and even over variables that rewards never directly depend on. Surprisingly, this transfers to near-optimal planning (exclusively inside the WM) for out-of-distribution goals, including reaching specific angular velocities despite position-only training. We analyse these <q>implicit generalisation capabilities</q> in <code>MountainCar</code>, revealing that agents with widely different objectives can secretly encode similar models. Finally, we identify a strong correlation (Spearman $\rho = 0.98$) between an agent's performance and the accuracy of its internalised WM, suggesting that GCRL is an <i>implicitly</i> hybrid method linking model-free and model-based RL.</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+
+<!-- =================== METHOD · P-LEARNING =================== -->
+<div id="outline-container-method" class="outline-3">
+<h3 id="method">$P$-learning: extracting world models from $Q$-values</h3>
+<div class="outline-text-3" id="text-method">
+
+<p>
+Our starting point is a simple symmetry. The (goal-augmented) Bellman operator for a fixed policy $\pi$ is given by<br />
+</p>
+
+<p>
+$$ \mathcal{T}^\pi_{P}(Q)(s, a, g) = \mathbb{E}_{s' \sim P(s,a),\,a'\sim\pi(s',g)}\bigl[\,r(s', g) + \gamma\, Q(s', a', g)\,\bigr] \,, $$
+</p>
+
+<p>
+making explicit the dependence of $\cT^\pi_P$ on the kernel $P$. While $Q$-learning treats $P$ as fixed and searches for a value function $Q$ that satisfies $\mathcal{T}^*_P(Q) = Q$, we consider the inverse problem of extracting an <q>internal</q> model $P^\star$ of the environment from a <i>fixed</i> agent with goal-conditioned $Q$-values, policy $\pi$, and known reward function $r$. The guiding observation is that a model $P_\phi$ satisfying the Bellman equation $\cT^\pi_{P_\phi}(Q) = Q$ is compatible with the agent's behavior, and may thus be viewed as (one possible) subjective belief of the agent about the environment. A natural objective to extract such a model is therefore to minimise the Bellman residual
+</p>
+
+<p>
+$$ \mathcal{L}(\phi) = \bigl\| \mathcal{T}^\pi_{P_\phi}(Q) - Q \bigr\|_d^2 $$
+</p>
+
+<p>
+with respect to $\phi$, for some reference distribution $d \in \Delta(\cS \times \cA \times \cG)$, e.g. induced by an exploration policy. We call this <b>$P$-learning</b>. Defining the TD estimate $\hat\delta_\phi(s,a,g,s',a') \eq r(s',g) + \gamma Q(s',a',g) - Q(s,a,g)$, we prove under regularity assumptions that the gradient is given by
+<p>
+  $$ \nabla_\phi \mathcal L = \E_{g,s,a,s',a'}\bigl[\delta_\phi \hat\delta_\phi \nabla_\phi \log P_\phi(s'|s,a)\bigr] \,, $$
+</p>
+where $(s,a,g) \sim d$ and $s' \sim P_\phi(s, a), a' \sim \pi(s', g)$. For finite MDPs, we can show that the Bellman equation becomes a set of linear systems $M\,P_\phi(s,a) = Q(s,a)$, where $M_{lk} := r(s'_k, g_l) + \gamma V(s'_k, g_l)$, and we prove (Theorem 1) that tabular $P$-learning converges, for any learning rate $0 < \alpha < 2/\sigma_{\max}^2(M)$, to<br />
+</p>
+
+<p>
+$$ P_\infty(s,a) = M^{+}\, Q(s,a) + \bigl(I - M^{+}M\bigr)\, P_0(s,a)\,, $$
+</p>
+
+<p>
+where $M^{+}$ is the Moore&ndash;Penrose pseudo-inverse. This reveals a key condition under which value equivalence can be broken: if $M$ has full rank, the second term vanishes and the iteration converges to a <i>unique</i> solution $M^+Q$, with $M^{+}$ acting as an <b>inverse Bellman map</b> from values back to dynamics (note that $M^+ = M^{-1}$ when $M$ is square). If $Q$-values are moreover exact, i.e. satisfy $\cT_P(Q) = Q$, then $P$-learning converges to the true kernel $P\,$! <br />
+</p>
+
+<details class="algorithm fr-fold">
+<summary class="algo-title"><span>$P$-learning &mdash; Pseudocode</span><span class="fr-foldhint"><span class="fr-chevron"></span></span></summary>
+<div class="algo-require"><b>Require:</b> $Q$-values, policy $\pi$, reward $r$, distribution $d$ over $(s, a, g)$, step sizes $\{\alpha_n\}$, parametric family $P_\phi\,$, initial $\phi_0$</div>
+<div class="algo-line"><span class="ln">1</span><span class="lt"><b>for</b> $n = 0, 1, \ldots$ <b>do</b></span></div>
+<div class="algo-line"><span class="ln">2</span><span class="lt indent">sample $(s, a, g) \sim d$</span></div>
+<div class="algo-line"><span class="ln">3</span><span class="lt indent">sample $s'_1, s'_2 \sim P_{\phi_n}(\cdot \mid s, a)$, &nbsp; $a'_1 \sim \pi(\cdot \mid s'_1, g)$, &nbsp; $a'_2 \sim \pi(\cdot \mid s'_2, g)$</span></div>
+<div class="algo-line"><span class="ln">4</span><span class="lt indent">$\delta^{i} \gets r(s'_i, g) + \gamma\, Q(s'_i, a'_i, g) - Q(s, a, g)$ &nbsp; for $i = 1, 2$</span></div>
+<div class="algo-line"><span class="ln">5</span><span class="lt indent">$\hat{g}_n \gets \delta^{1}\, \delta^{2}\, \nabla_\phi \log P_\phi(s'_2 \mid s, a)\big|_{\phi=\phi_n}$</span></div>
+<div class="algo-line"><span class="ln">6</span><span class="lt indent">$\phi_{n+1} \gets \phi_n - \alpha_n\, \hat{g}_n$</span></div>
+<div class="algo-line"><span class="ln">7</span><span class="lt"><b>end for</b></span></div>
+<div class="algo-line"><span class="ln">8</span><span class="lt"><b>return</b> extracted world model $P_{\phi_n}$</span></div>
+</details>
+</div>
+</div>
+
+
+<!-- =================== THEORY =================== -->
+<div id="outline-container-theory" class="outline-3">
+<h3 id="theory">Theory: when is $P$ uniquely determined by $Q$?</h3>
+<div class="outline-text-3" id="text-theory">
+<p>
+While $P$-learning enables the efficient extraction of WMs, the resulting kernel may not be determined uniquely (e.g. if $M$ is rank-deficient in the setting above). We provide conditions under which agents break this degeneracy when $Q$-values are <i>exact</i>, with tight error bounds when they are <i>approximate</i>. Four regimes emerge for stochastic/deterministic kernels and finite/continuous state spaces. <b>Indicator</b> rewards are defined by $r(s,g) = \delta_{sg}$ in finite $\cS$ or $r(s,g) = \mathbf{1}[\|s-g\| \leq \sigma]$ with $\sigma > 0$ in continuous $\cS\,$; <b>Gaussian</b> rewards are given by $r(s,g) = e^{-\|s-g\|^2/2\sigma^2}$.<br />
+</p>
+
+<!-- <div class="step2bullets">
+<ul class="org-ul">
+<li><b>Deterministic $P$, finite $\cS$:</b> a single $|\cG| = 1$ generic goal suffices.
+<li><b>Stochastic $P$, finite $\cS$:</b> $|\mathcal{G}| \geq |\mathcal{S}|$ generic or spanning goals (including indicator goals $r(g,s) = \delta_{gs}$ with $g \in \cS$).
+<li><b>Deterministic $P$, continuous $\cS$:</b> a sufficiently large but finite number of goals is sometimes sufficient.
+<li><b>Stochastic $P$, continuous $\cS$:</b> identifiability is driven by coverage instead of count: a goal set with non-empty interior for Gaussian rewards, and full coverage for sparse rewards.<br /></li>
+</ul>
+</div> -->
+
+<!-- Table 1 (collapsible): sufficient conditions for a unique world model -->
+<style>
+  /* Table 1 — centred summary table (always visible) */
+  .thm-fold { text-align: center; }
+  .thm-fold .caption { text-align: center; }
+  .thm-table { border-collapse: collapse; margin: 8px auto 12px; font-size: 0.9em; line-height: 1.3; border-top: 1.5px solid #333; border-bottom: 1.5px solid #333; }
+  .thm-table th, .thm-table td { padding: 7px 14px; text-align: center; }
+  .thm-table thead th { border-bottom: 1px solid #333; font-weight: 600; }
+  .thm-table tbody tr.grp td { border-top: 1px solid #ccc; }
+  .thm-table .vr { border-right: 1px solid #dcdcdc; }
+  .thm-table .c-state  { text-align: left; padding-left: 4px; padding-right: 6px; }   /* tight left column */
+  .thm-table .c-mid    { padding-left: 30px; padding-right: 30px; }                    /* widen the two middle columns */
+  .thm-table .c-reward { text-align: right; padding-left: 22px; }                      /* right-align reward */
+  @media (max-width: 600px) { .thm-table { font-size: 0.76em; } .thm-table th, .thm-table td { padding: 5px 8px; } .thm-table .c-mid { padding-left: 12px; padding-right: 12px; } }
+</style>
+<div class="thm-fold" style="margin-top:30px;">
+<h5 style="margin-bottom:10px;">Conditions on $(\cG, r)$ under which environment dynamics are uniquely determined by $Q$-values.</h5>
+<table class="thm-table">
+  <thead>
+    <tr>
+      <th class="c-state vr">State space $\cS$</th>
+      <th class="c-mid">Deterministic $P$</th>
+      <th class="c-mid vr">Stochastic $P$</th>
+      <th class="c-reward">Reward $r$</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="c-state vr" rowspan="3"><b>Finite $\cS$</b></td>
+      <td class="c-mid">$|\cG| \geq 1$</td><td class="c-mid vr">$|\cG| \geq |\cS|$</td><td class="c-reward"><b>Generic</b></td>
+    </tr>
+    <tr>
+      <td class="c-mid">$|\cG| \geq 1$</td><td class="c-mid vr">$|\cG| \geq |\cS|$</td><td class="c-reward"><b>Gaussian</b></td>
+
+    </tr>
+    <tr>
+      <td class="c-mid">$|\cG| \geq |\cS|$</td><td class="c-mid vr">$|\cG| \geq |\cS|$</td><td class="c-reward"><b>Indicator</b></td>
+    </tr>
+    <tr class="grp">
+      <td class="c-state vr" rowspan="2"><b>Continuous $\cS \subseteq \mathbb{R}^d$</b></td>
+      <td class="c-mid" style="line-height:1.85;">if <sup>&dagger;&Dagger;</sup> then $|\cG| \geq 2d+1$<br> else $|\cG|$ large (finite)</td><td class="c-mid vr">$\cG$ non-empty interior<sup>&Dagger;</sup></td><td class="c-reward"><b>Gaussian</b></td>
+    </tr>
+    <tr>
+      <td class="c-mid">$\cG \supseteq \cS + B_\sigma(0)$</td><td class="c-mid vr">$\cG \supseteq \cS + B_\sigma(0)$<sup>&Dagger;</sup></td><td class="c-reward"><b>Indicator</b></td>
+    </tr>
+  </tbody>
+</table>
+<p class="caption caption-block" style="font-size:0.82em; margin-top:-7px;margin-bottom:25px;">
+<sup>&dagger;</sup>&nbsp;For real-analytic value functions.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <sup>&Dagger;</sup>&nbsp;For unconditional policies.
+</p>
+</div>
+
+<p> Taken together, our results show that methods like GCRL can bridge model-free and model-based RL, with the collection $(Q_g, \pi_g, r_g)_{g \in \cG}$ becoming informationally equivalent to the kernel $P$ when $\cG$ is sufficiently rich. Note that policies are most often induced by $Q$-functions via $\text{argmax}$ or $\text{softmax}$, so $(Q_g, r_g)$ is typically sufficient in practice. Moreover, our results make no assumptions on policy <i>optimality</i>: only $Q$-value <i>accuracy</i> is required.</p>
+</div>
+</div>
+
+
+<!-- =================== EXPERIMENT · REACHER =================== -->
+<div id="outline-container-reacher" class="outline-3">
+<h3 id="reacher">Experiment (<code>Reacher</code>): beyond theoretical guarantees</h3>
+<div class="outline-text-3" id="text-reacher">
+<p>
+We train a goal-conditioned <a href="https://arxiv.org/abs/2407.04811">PQN</a> agent on MuJoCo <code>Reacher</code> with only $|\mathcal{G}|=4$ sparse goals at the cardinal positions $\{(\pm 1, 0), (0, \pm 1)\}$, and extract its implicit WM with $P$-learning. We visualise the agent's return, $Q$-values and extracted WM over the course of training in the animation below. Despite imperfect $Q$-values (normalised MSE $=5.7\cdot10^{-1}$), the WM matches ground-truth dynamics with high fidelity (NMSE $=1.2\cdot10^{-4}$).<br /><br />
+</p>
+
+<!-- =================== INTERACTIVE ANIMATION (end of overview) =================== -->
+<div id="reacher-anim" class="anim-card open">
+  <style>
+    #reacher-anim.anim-card { border:1.5px solid #0a3d6e; border-radius:10px; overflow:hidden; background:#fff; margin:-5px 0 30px; position:relative; left:0; transform:translateX(0); width:100%; transition:width .45s ease, left .45s ease, transform .45s ease; }
+    #reacher-anim.anim-card.open { left:50%; transform:translateX(-50%); width:min(960px, 96vw); }
+    #reacher-anim .anim-toggle { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; text-align:left; cursor:pointer; background:linear-gradient(180deg,#35628f,#2c527a); border:0; padding:13px 20px; font-size:1.0em; color:#fff; transition:background .2s ease; }
+    #reacher-anim .anim-toggle:hover { background:linear-gradient(180deg,#2c527a,#244467); }
+    #reacher-anim.anim-card.open .anim-toggle { border-bottom:1px solid #e6eef8; }
+    #reacher-anim .anim-toggle code { background:#e7f0fb; padding:1px 5px; border-radius:3px; }
+    #reacher-anim .anim-right { display:flex; align-items:center; gap:9px; flex:0 0 auto; }
+    #reacher-anim .anim-hint { color:#dbeaf7; font-weight:600; font-size:0.85em; }
+    #reacher-anim .anim-chevron { width:10px; height:10px; border-right:2.5px solid #dbeaf7; border-bottom:2.5px solid #dbeaf7; transform:rotate(-45deg); transition:transform .3s ease; margin-right:4px; }
+    #reacher-anim.anim-card.open .anim-chevron { transform:rotate(45deg); }
+    #reacher-anim .anim-collapse { display:grid; grid-template-rows:0fr; transition:grid-template-rows .45s ease; }
+    #reacher-anim.anim-card.open .anim-collapse { grid-template-rows:1fr; }
+    #reacher-anim .anim-collapse > .anim-body { overflow:hidden; min-height:0; }
+    #reacher-anim .anim-inner { padding:4px 20px 18px; }
+    #reacher-anim .anim-lead { text-align:center; font-size:0.9em; color:#666; margin:10px auto 14px; max-width:92%; }
+    #reacher-anim .anim-stage { position:relative; width:100%; aspect-ratio:2080 / 1232; overflow:hidden; border:1px solid #e6e6e6; border-radius:8px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.07); }
+    #reacher-anim .anim-stage video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:none; }
+    #reacher-anim .anim-stage video.active { display:block; animation:animFade .4s ease; }
+    @keyframes animFade { from { opacity:0.2; } to { opacity:1; } }
+    #reacher-anim .anim-controls { display:flex; align-items:center; gap:12px; margin:13px 2px 2px; }
+    #reacher-anim .anim-play { flex:0 0 auto; width:32px; height:32px; border-radius:50%; border:1px solid #cfe0f5; background:#f4f8fd; color:#35628f; cursor:pointer; font-size:0.72em; line-height:1; display:flex; align-items:center; justify-content:center; transition:background .15s ease; }
+    #reacher-anim .anim-play:hover { background:#e7f0fb; }
+    #reacher-anim .anim-scrub { flex:1 1 auto; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:linear-gradient(90deg,#35628f 0%,#dbe7f5 0%); cursor:pointer; outline:none; }
+    #reacher-anim .anim-scrub::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:15px; height:15px; border-radius:50%; background:#35628f; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.25); }
+    #reacher-anim .anim-scrub::-moz-range-thumb { width:15px; height:15px; border:0; border-radius:50%; background:#35628f; cursor:pointer; }
+    #reacher-anim .anim-btns { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:7px; margin:16px 0 10px; }
+    #reacher-anim .anim-btns button { font-size:0.84em; padding:5px 13px; border:1px solid #cfe0f5; background:#f4f8fd; color:#35628f; border-radius:999px; cursor:pointer; transition:background .15s ease, color .15s ease, box-shadow .15s ease; }
+    #reacher-anim .anim-btns button:hover { background:#e7f0fb; }
+    #reacher-anim .anim-btns button.active { background:#35628f; border-color:#35628f; color:#fff; font-weight:600; box-shadow:0 2px 6px rgba(53,98,143,0.32); }
+    #reacher-anim .anim-btns .anim-sep { width:1px; align-self:stretch; background:#dbe7f5; margin:3px 3px; }
+    #reacher-anim .anim-cap { margin-top:6px; }
+    #reacher-anim .anim-cap[hidden] { display:none; }
+  </style>
+  
+  <button type="button" class="anim-toggle" aria-expanded="true" aria-controls="anim-collapse">
+    <span class="anim-label"><b>Animation:</b> Extraction of a Reacher agent's world model</span>
+    <span class="anim-right"><span class="anim-hint">Hide</span><span class="anim-chevron" aria-hidden="true"></span></span>
+  </button>
+  
+  <div class="anim-collapse" id="anim-collapse">
+  <div class="anim-body">
+  <div class="anim-inner">
+  <p class="anim-lead"></p>
+  
+  <div class="anim-stage">
+    <video data-key="all" class="active" loop="loop" muted="muted" playsinline="playsinline" preload="metadata" poster="imgs/reacher_anim/reacher_plearning_poster.jpg">
+      <source src="imgs/reacher_anim/reacher_plearning.mp4" type="video/mp4" />
+      <img src="imgs/reacher_anim/reacher_plearning_poster.jpg" alt="P-learning Reacher training animation" style="width:100%;" />
+    </video>
+    <video data-key="A_return" loop="loop" muted="muted" playsinline="playsinline" preload="none" poster="imgs/reacher_anim/panel_A_return_poster.jpg"><source src="imgs/reacher_anim/panel_A_return.mp4" type="video/mp4" /></video>
+    <video data-key="B_mse" loop="loop" muted="muted" playsinline="playsinline" preload="none" poster="imgs/reacher_anim/panel_B_mse_poster.jpg"><source src="imgs/reacher_anim/panel_B_mse.mp4" type="video/mp4" /></video>
+    <video data-key="C_unseen" loop="loop" muted="muted" playsinline="playsinline" preload="none" poster="imgs/reacher_anim/panel_C_unseen_poster.jpg"><source src="imgs/reacher_anim/panel_C_unseen.mp4" type="video/mp4" /></video>
+    <video data-key="D_q" loop="loop" muted="muted" playsinline="playsinline" preload="none" poster="imgs/reacher_anim/panel_D_q_poster.jpg"><source src="imgs/reacher_anim/panel_D_q.mp4" type="video/mp4" /></video>
+    <video data-key="E_p" loop="loop" muted="muted" playsinline="playsinline" preload="none" poster="imgs/reacher_anim/panel_E_p_poster.jpg"><source src="imgs/reacher_anim/panel_E_p.mp4" type="video/mp4" /></video>
+    <video data-key="F_traj" loop="loop" muted="muted" playsinline="playsinline" preload="none" poster="imgs/reacher_anim/panel_F_traj_poster.jpg"><source src="imgs/reacher_anim/panel_F_traj.mp4" type="video/mp4" /></video>
+  </div>
+  
+  <div class="anim-controls">
+    <button type="button" class="anim-play" aria-label="Play or pause">&#9654;</button>
+    <input type="range" class="anim-scrub" min="0" max="1000" value="0" step="1" aria-label="Scrub the animation timeline" />
+  </div>
+  
+  <div class="anim-btns">
+    <button type="button" data-key="all" class="active">All</button>
+    <span class="anim-sep"></span>
+    <button type="button" data-key="A_return">Training return</button>
+    <button type="button" data-key="B_mse">World model error</button>
+    <button type="button" data-key="C_unseen">Unseen-goal return</button>
+    <button type="button" data-key="D_q">Q-values</button>
+    <button type="button" data-key="E_p">World model</button>
+    <button type="button" data-key="F_traj">Rollouts</button>
+  </div>
+  
+  <div class="anim-caps">
+    <p class="anim-cap caption caption-block" data-cap="all">
+    <b>Top row:</b> agent return on training goals, MSE of world model (WM) extracted via $P$-learning, and return of policies planned inside the WM on unseen goals. <b>Bottom row:</b> slice of the learnt $Q$-values, implicit WM, and policy rollouts, all shown vs ground truth.
+    </p>
+    <p class="anim-cap caption caption-block" data-cap="A_return" hidden="hidden">
+    <b>Agent return.</b> Discounted return of the <code>Reacher</code> agent on four training goals (fingertip targets at unit distance in the four cardinal directions), with the exponentially weighted average return in black.
+    </p>
+    <p class="anim-cap caption caption-block" data-cap="B_mse" hidden="hidden">
+    <b>World-model error.</b> Mean-squared error between the extracted world model and the true transition kernel. The world model implicitly encoded by the agent becomes more accurate as the agent becomes more capable.
+    </p>
+    <p class="anim-cap caption caption-block" data-cap="C_unseen" hidden="hidden">
+    <b>Unseen-goal return.</b> Return of policies trained <i>exclusively</i> inside the extracted world model, evaluated on three out-of-distribution goals: <b>target velocity</b> (unseen goal 1), <b>target angle</b> (unseen goal 2), and <b>distant fingertip</b> (unseen goal 3).
+    </p>
+    <p class="anim-cap caption caption-block" data-cap="D_q" hidden="hidden">
+    <b>$Q$-value slice.</b> Learnt $Q$-values $Q_g(\theta,\omega,a)$ during training, against optimal $Q$-values, sliced at $g = (0, 1)$, $a = (1,1)$, $\omega = (1, -1)$. The normalised MSE between learnt and optimal $Q$-values is $5.7 \times 10^{-1}$ at the end of training.
+    </p>
+    <p class="anim-cap caption caption-block" data-cap="E_p" hidden="hidden">
+    <b>World-model slice.</b> Extracted world model $P(\theta,\omega,a)$ versus true kernel, sliced at $a = (1,1)$, $\omega = (1, -1)$. Despite imperfect $Q$-values (normalised MSE $= 5.7 \cdot 10^{-1}$), the implicit WM is highly accurate (normalised MSE $= 1.2 \cdot 10^{-4}$).
+    </p>
+    <p class="anim-cap caption caption-block" data-cap="F_traj" hidden="hidden">
+    <b>Policy rollouts.</b> Trajectories of the optimal goal-conditioned policy, rolled out using extracted world model (solid) versus true kernel (dashed), for the four training goals, from a fixed starting point.
+    </p>
+  </div>
+  </div>
+  </div>
+  </div>
+  </div>
+  
+  <script>
+  (function () {
+    var root = document.getElementById('reacher-anim');
+    if (!root) { return; }
+    var toggle = root.querySelector('.anim-toggle');
+    var hint = root.querySelector('.anim-hint');
+    var vids = root.querySelectorAll('.anim-stage video');
+    var btns = root.querySelectorAll('.anim-btns button');
+    var caps = root.querySelectorAll('.anim-cap');
+    var playBtn = root.querySelector('.anim-play');
+    var scrub = root.querySelector('.anim-scrub');
+    var current = 'all';
+    var userPaused = false;   // remembered across panel switches
+    var dragging = false;
+    var rafId = null;
+    var lastIcon = '';
+  
+    function activeVid() {
+      for (var i = 0; i < vids.length; i++) {
+        if (vids[i].getAttribute('data-key') === current) { return vids[i]; }
+      }
+      return null;
+    }
+    function setFill(pct) {
+      if (scrub) { scrub.style.background = 'linear-gradient(90deg,#35628f ' + pct + '%,#dbe7f5 ' + pct + '%)'; }
+    }
+    function refresh() {
+      var v = activeVid();
+      if (v && v.duration && isFinite(v.duration) && !dragging && scrub) {
+        var frac = v.currentTime / v.duration;
+        scrub.value = Math.round(frac * 1000);
+        setFill((frac * 100).toFixed(2));
+      }
+      var icon = (v && !v.paused) ? '&#10074;&#10074;' : '&#9654;';
+      if (playBtn && icon !== lastIcon) { playBtn.innerHTML = icon; lastIcon = icon; }
+    }
+    function loop() { refresh(); rafId = window.requestAnimationFrame(loop); }
+    function startLoop() { if (rafId === null) { loop(); } }
+    function stopLoop() { if (rafId !== null) { window.cancelAnimationFrame(rafId); rafId = null; } }
+  
+    function syncVideos() {
+      var open = root.classList.contains('open');
+      for (var i = 0; i < vids.length; i++) {
+        var on = vids[i].getAttribute('data-key') === current;
+        vids[i].classList.toggle('active', on);
+        if (on && open && !userPaused) {
+          var pr = vids[i].play();
+          if (pr && pr.catch) { pr.catch(function () {}); }
+        } else {
+          vids[i].pause();
+        }
+      }
+      refresh();
+    }
+    function select(key) {
+      current = key;
+      userPaused = false;            // a tab click means "show me this, playing"
+      var v = activeVid();
+      if (v) { try { v.currentTime = 0; } catch (e) {} }   // restart from the beginning
+      syncVideos();
+      for (var j = 0; j < btns.length; j++) {
+        btns[j].classList.toggle('active', btns[j].getAttribute('data-key') === key);
+      }
+      for (var m = 0; m < caps.length; m++) {
+        caps[m].hidden = (caps[m].getAttribute('data-cap') !== key);
+      }
+    }
+  
+    toggle.addEventListener('click', function () {
+      var open = !root.classList.contains('open');
+      root.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (hint) { hint.textContent = open ? 'Hide' : 'Show'; }
+      syncVideos();
+      if (open) { startLoop(); } else { stopLoop(); }
+    });
+    for (var k = 0; k < btns.length; k++) {
+      btns[k].addEventListener('click', (function (bt) {
+        return function () { select(bt.getAttribute('data-key')); };
+      })(btns[k]));
+    }
+    if (playBtn) {
+      playBtn.addEventListener('click', function () {
+        var v = activeVid();
+        if (!v) { return; }
+        if (v.paused) {
+          userPaused = false;
+          var pr = v.play();
+          if (pr && pr.catch) { pr.catch(function () {}); }
+        } else {
+          userPaused = true;
+          v.pause();
+        }
+        refresh();
+      });
+    }
+    if (scrub) {
+      var resumeAfter = false;
+      scrub.addEventListener('pointerdown', function () {
+        dragging = true;
+        var v = activeVid();
+        resumeAfter = !!(v && !v.paused);  
+        if (v) { v.pause(); }   
+      });
+      window.addEventListener('pointerup', function () {
+        if (!dragging) { return; }
+        dragging = false;
+        var v = activeVid();
+        if (v && resumeAfter && !userPaused) {
+          var pr = v.play();
+          if (pr && pr.catch) { pr.catch(function () {}); }
+        }
+        resumeAfter = false;
+      });
+      scrub.addEventListener('input', function () {
+        var v = activeVid();
+        if (!v || !v.duration || !isFinite(v.duration)) { return; }
+        v.currentTime = (scrub.value / 1000) * v.duration;
+        setFill((scrub.value / 10).toFixed(2));
+      });
+    }
+    // Initial state: expanded and paused on the final frame (no autoplay).
+    current = 'all';
+    userPaused = true;                       // suppress autoplay in syncVideos()
+    for (var ai = 0; ai < vids.length; ai++) {
+      vids[ai].classList.toggle('active', vids[ai].getAttribute('data-key') === 'all');
+      vids[ai].pause();
+    }
+    for (var aj = 0; aj < btns.length; aj++) {
+      btns[aj].classList.toggle('active', btns[aj].getAttribute('data-key') === 'all');
+    }
+    for (var am = 0; am < caps.length; am++) {
+      caps[am].hidden = (caps[am].getAttribute('data-cap') !== 'all');
+    }
+    (function () {
+      var v0 = activeVid();
+      if (!v0) { return; }
+      function toEnd() {
+        if (v0.duration && isFinite(v0.duration)) {
+          try { v0.currentTime = Math.max(0, v0.duration - 0.05); } catch (e) {}
+        }
+        refresh();
+      }
+      if (v0.readyState >= 1 && v0.duration && isFinite(v0.duration)) { toEnd(); }
+      else { v0.addEventListener('loadedmetadata', toEnd, { once: true }); }
+      v0.addEventListener('seeked', refresh, { once: true });
+    })();
+    startLoop();                             // keep scrub/icon in sync once the user plays
+  })();
+  </script>
+
+
+
+
+
+
+<div class="wrapfig-right">
+<img src="imgs/results/fig3_unseen.png" style="width:100%;image-rendering:auto;">
+<p class="caption", style="margin-top:10px;"> <i>Left:</i>
+Discounted return of optimal $(R^\star)$ vs WM-trained $(R^{\text{WM}})$ policies on three unseen goals each. Mean $\pm$ SE over 10 seeds and 512 resets. WM-derived policies are quasi-optimal on every out-of-distribution task.
+</p>
+</div>
+
+<p>
+To further validate accuracy, we train policies inside the extracted WM for three unseen goals increasingly far from the training distribution: <i>(i) far fingertip:</i> reach fingertip position $(x, y) = (\sqrt{2}, \sqrt{2})$, which is twice as far as any training goal; <i>(ii) target angle:</i> reach joint configuration $\theta = (0, \pi)$, noting that distinct angle configurations can give the same fingertip position; and <i>(iii) target velocity:</i> reach velocity $\om = (2, 2)$, where $\omega$ covers a different dimension as the training goals. Despite the agent being trained on exclusively position-based goals, the WM-learnt policy is quasi-optimal on all three tasks, as shown in the bar plot, revealing <b>implicit generalisation capabilities</b>.<br />
+</p>
+
+<div style="clear:both;"></div>
+
+<p>
+Finally, we test whether <b>better agents have better implicit world models</b> by sweeping over <a href="https://arxiv.org/abs/2605.16196">architecture capacity</a>. We plot agent return, MSE of the extracted WM, and return of a WM-trained policy on unseen goals, against capacity in the figure below. The Spearman correlation coefficients between agent return and WM error, and agent return and WM-policy return on unseen goals, are $\rho = -0.98$ with 95% confidence interval $[-0.99, -0.95]$, and $\rho = +0.95$ $[+0.89, +0.97]$, suggesting that performance and implicit generalisation are tightly coupled.
+</p>
+
+<img src="imgs/reacher_sweep/w512_2row_combined.png" style="width:100%;image-rendering:auto;margin-top:20px;">
+<p class="caption caption-block", style="margin-bottom:28px;">
+<i>Top:</i> agent return, WM error, and WM-policy return on unseen goals over training, for fixed width $W = 512$ and increasing $Q$-network depth $D$. <i>Bottom:</i> the same three metrics as heatmaps over all widths and depths at the end of training. More capacity $\Rightarrow$ better agent <i>and</i> better implicit WM.
+</p>
+</div>
+</div>
+
+
+<!-- =================== EXPERIMENT · MOUNTAINCAR =================== -->
+<div id="outline-container-mountaincar" class="outline-3">
+<h3 id="mountaincar">Experiment (<code>MountainCar</code>): agents with different goals secretly agree</h3>
+<div class="outline-text-3" id="text-mountaincar">
+
+<div class="wrapfig-right" style="width:61%;">
+<img src="imgs/results/fig5_mountaincar_quiver.png" style="width:95%;image-rendering:auto;">
+<p class="caption" style="padding-left:20px;"> <i>Left:</i>
+Quiver plots of WMs extracted from two agents trained with position- and velocity-based goals vs ground truth, for $a = \text{right}$. Each arrow starts from a state $s$ and points to the predicted or true next-state $s' = P(s,a)$.
+</p>
+</div>
+
+<p>
+Digging deeper, we repeat the same experiment in <code>Mountaincar</code>, and then train a second agent with 4 <i>velocity</i>-based goals. The resulting implicit WMs are near-identical (NMSE $= 1.7\cdot10^{-4}$), and ~42 times closer to each other than to the true kernel (NMSE $= 7.2\cdot10^{-3}$), as illustrated in the quiver plot to the right. This leads us to formulate an informal <q>local-global</q> hypothesis left for future exploration: <i>value-based agents, trained to predict returns on a small number of local reward functions (i.e. defined on a subset of variables), tend to encode an accurate world model over all dependent environment variables.</i>
+</p>
+
+<div style="clear:both;"></div>
+</div>
+</div>
+
+
+<!-- =================== EXPERIMENT · FOURROOMS =================== -->
+<div id="outline-container-fourrooms" class="outline-3">
+<h3 id="fourrooms">Experiment (<code>FourRooms</code>): more stochasticity, more goals</h3>
+
+<div class="outline-text-3" id="text-fourrooms">
+<p>
+To validate our theoretical results for stochastic environments, and assess the number of goals required in practice, we run experiments on three increasingly stochastic variants of the classic <a href="https://www.sciencedirect.com/science/article/pii/S0004370299000521">FourRooms</a> gridworld. In each case we plot (left) the extracted world-model MSE as a function of training timestep, for increasing $|\cG|$. We also plot (right) the policy obtained by planning inside the extracted WM (solid) vs the optimal policy (dashed), for two out-of-distribution goals specified by reaching a given state without walking onto unsafe states.
+</p>
+
+<style>
+  .fr-fold { margin:14px 0; }
+  .fr-fold > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; }
+  .fr-fold > summary::-webkit-details-marker { display:none; }
+  .fr-fold > summary h4 { margin:0; }
+  .fr-fold .fr-foldhint { display:inline-flex; align-items:center; gap:6px; color:#0d579c; font-weight:600; font-size:0.8em; }
+  .fr-fold .fr-foldhint::before { content:"Show"; }
+  .fr-fold[open] .fr-foldhint::before { content:"Hide"; }
+  .fr-fold .fr-chevron { width:8px; height:8px; border-right:2px solid #0d579c; border-bottom:2px solid #0d579c; transform:rotate(-45deg); transition:transform .2s ease; }
+  .fr-fold[open] .fr-chevron { transform:rotate(45deg); }
+  .fr-fold .fr-foldbody { padding-top:6px; }
+  .algorithm.fr-fold { margin: 22px 0 6px; max-width: 100%; }
+  .algorithm.fr-fold > summary { display:flex; align-items:center; justify-content:space-between; gap:14px; cursor:pointer; list-style:none; }
+  .algorithm.fr-fold:not([open]) > summary { border-bottom:0; margin-bottom:0; padding-bottom:0; }
+</style>
+
+<details class="fr-fold">
+<summary><h4><b>Deterministic</b> &mdash; $|\mathcal{G}| = 1$ suffices</h4><span class="fr-foldhint"><span class="fr-chevron"></span></span></summary>
+<div class="fr-foldbody">
+<div class="frooms-row">
+<div class="fr-mse"><img src="imgs/four_rooms/gridworld_deterministic_mse.png" style="width:100%;image-rendering:auto;"></div>
+<div class="fr-traj"><img src="imgs/four_rooms/gridworld_deterministic_traj.png" style="width:100%;image-rendering:auto;"></div>
+</div>
+<p class="caption caption-block">
+<i>Left:</i> A single generic goal (reward function perturbed with uniform noise at initialisation) drives the extracted WM to <i>zero</i> error during training. <i>Right:</i> optimal (dashed) vs WM-derived (solid) policy on two out-of-distribution goals. They coincide exactly, in line with our theorem (deterministic $P$, finite $\cS$).
+</p>
+</div>
+</details>
+
+<details class="fr-fold">
+<summary><h4><b>Windy</b> (local stochasticity) &mdash; $|\mathcal{G}| = 4$ suffices</h4><span class="fr-foldhint"><span class="fr-chevron"></span></span></summary>
+<div class="fr-foldbody">
+<div class="frooms-row">
+<div class="fr-mse"><img src="imgs/four_rooms/gridworld_windy_mse.png" style="width:100%;image-rendering:auto;"></div>
+<div class="fr-traj"><img src="imgs/four_rooms/gridworld_windy_traj.png" style="width:100%;image-rendering:auto;"></div>
+</div>
+<p class="caption caption-block">
+The windy variant realises the intended action w.p. $\tfrac{1}{2}$ and rotates it 90&deg; either way w.p. $\tfrac{1}{4}$ each. The single-goal regime is no longer sufficient for stochastic dynamics, but for $|\mathcal{G}| = 4$, the optimal (dashed) vs WM-derived (solid) policies on OOD goals have returns matching to within a few percent.
+</p>
+</div>
+</details>
+
+<details class="fr-fold">
+<summary><h4><b>Teleporting</b> (full stochasticity) &mdash; $|\mathcal{G}| = 20$ suffices</h4><span class="fr-foldhint"><span class="fr-chevron"></span></span></summary>
+<div class="fr-foldbody">
+<div class="frooms-row">
+<div class="fr-mse"><img src="imgs/four_rooms/gridworld_teleport_mse.png" style="width:100%;image-rendering:auto;"></div>
+<div class="fr-traj"><img src="imgs/four_rooms/gridworld_teleport_traj.png" style="width:100%;image-rendering:auto;"></div>
+</div>
+<p class="caption caption-block">
+In the teleporting variant, four cells (marked T) re-emit the agent uniformly into the diagonally-opposite room. For $|\mathcal{G}| = 20$, the extracted WM is almost perfect, again producing quasi-optimal policies on OOD goals, well below the worst-case theoretical bound $|\mathcal{G}| \geq |\mathcal{S}| = 68$.
+</p>
+</div>
+</details>
+
+Finally, we plot the return on out-of-distribution goals as a function of the number of training goals $|\cG|$, for each variant of the environment. Surprisingly, the number of goals inducing quasi-optimal OOD generalisation grows gently: $|\mathcal{G}| = 1 \to 4 \to 20\,$ goals for deterministic $\to$ local $\to$ fully stochastic, well below the $|\mathcal{G}| = 68$ our theory demands.<br />
+
+<img src="imgs/four_rooms/final_step_returns.png" style="width:100%;image-rendering:auto;margin-top:20px;">
+<p class="caption caption-block", style="margin-bottom:28px;">
+Mean return $\pm$ SE (10 training seeds), for WM-trained $(R^\text{WM})$ vs optimal $(R^\star)$ policies, on two unseen goals, in each <code>FourRooms</code> variant, for varying number of training goals $|\cG|$ on the $x$-axis.
+</p>
+</div>
+</div>
+
+
+
+<!-- =================== TAKEAWAYS =================== -->
+<div id="outline-container-takeaways" class="outline-3">
+<h3 id="takeaways">Takeaways</h3>
+<div class="outline-text-3" id="text-takeaways">
+<div class="step2bullets">
+<ul class="org-ul">
+<li>Model-free agents that learn $Q$-values implicitly carry, in decodable form, a <b>model of the world</b>.<br /></li>
+<li>$P$-learning provides a concrete algorithm for <b>inverting the Bellman equation</b>: $(Q, \pi, r) \mapsto P$.<br /></li>
+<li>These internalised world models are often highly accurate, even for agents trained on a handful of goals, inducing <b>implicit generalisation capabilities</b> via zero-shot planning for out-of-distribution goals &mdash; including over variables the training reward functions never directly depend on.<br /></li>
+<li>Our results take a first step in bridging <b>model-based, model-free, and goal-conditioned RL</b>: when model-free agents are trained on a sufficiently rich set of goals, they implicitly contain a unique and accurate world model. We hope this will inspire <b>interpretability</b> and <b>auditing</b> tools based on implicit world models, to help ensure that agents can efficiently be repurposed when trained using reward functions that are, inevitably, misspecified.<br /></li>
+
+</ul>
+</div>
+
+<p>
+</p>
+</div>
+</div>
+
+</div></div>
+</div>
+
+
+<!-- =================== CITATION =================== -->
+<div class="row">
+<div class="col-md-10 col-md-offset-2">
+<h3>Citation</h3>
+<div class="form-group col-md-8 col-md-offset-1"><textarea id="bibtex" class="form-control" readonly rows="10">
+@misc{letcher2026inverting,
+    title={Inverting the Bellman Equation: From $Q$-Values to World Models}, 
+    author={Alistair Letcher and Mattie Fellows and Alexander D. Goldie and Jonathan Richens and Jakob N. Foerster and Oliver Richardson},
+    year={2026},
+    eprint={2606.21173},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG},
+    url={https://arxiv.org/abs/2606.21173}, 
+}</textarea>
+</div>
+</div>
+</div>
+
+<!-- =================== FOOTER =================== -->
+<div class="row"><div class="col-md-20 col-md-offset-0"><p class="text-center">
+<br><br>
+The website template was borrowed from <a href="http://easyacademicwebsite.github.io">Easy Academic Website Template</a>.
+</p>
+</div>
+</div>
+
+</div>
+</div>
+</body>
+</html>
